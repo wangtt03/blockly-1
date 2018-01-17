@@ -32,6 +32,10 @@ goog.require('Blockly.BlockLimits');
 goog.require('Blockly.Comment');
 goog.require('goog.math.Rect');
 
+/**
+ * Opacity used to calculate flyout background color.
+ */
+Blockly.FLYOUT_OPACITY = .35;
 
 /**
  * Class for a flyout.
@@ -417,9 +421,20 @@ Blockly.Flyout.prototype.layoutXmlToBlocks_ = function(xmlList, blocks, gaps, ma
  * @param {!Array|string} xmlList List of blocks to show.
  *     Variables and procedures have a custom set of blocks.
  */
-Blockly.Flyout.prototype.show = function(xmlList) {
+Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
   this.hide();
   this.svgGroup_.style.display = 'block';
+
+  if (opt_colour) {
+    var r = parseInt(opt_colour.substring(1, 3), 16);
+    var g = parseInt(opt_colour.substring(3, 5), 16);
+    var b = parseInt(opt_colour.substring(5, 7), 16);
+    var colour = "#";
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * r).toString(16);
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * g).toString(16);
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * b).toString(16);
+    this.svgBackground_.setAttribute('style', "fill: " + colour);
+}
 
   var margin = this.CORNER_RADIUS;
   var initialX = Blockly.RTL ? this.width_ : margin

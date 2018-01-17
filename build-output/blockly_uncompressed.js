@@ -18278,7 +18278,7 @@ Blockly.Names.prototype.safeName_ = function(name) {
   if (!name) {
     name = "unnamed";
   } else {
-    name = encodeURI(name.replace(/ /g, "_")).replace(/[^\w]/g, "_");
+    name = name.replace(/ /g, "_");
     if ("0123456789".indexOf(name[0]) != -1) {
       name = "my_" + name;
     }
@@ -21327,6 +21327,7 @@ goog.require("Blockly.Block");
 goog.require("Blockly.BlockLimits");
 goog.require("Blockly.Comment");
 goog.require("goog.math.Rect");
+Blockly.FLYOUT_OPACITY = .35;
 Blockly.Flyout = function(blockSpaceEditor, opt_static) {
   var flyout = this;
   this.blockSpaceEditor_ = blockSpaceEditor;
@@ -21502,9 +21503,19 @@ Blockly.Flyout.prototype.layoutXmlToBlocks_ = function(xmlList, blocks, gaps, ma
     }
   }
 };
-Blockly.Flyout.prototype.show = function(xmlList) {
+Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
   this.hide();
   this.svgGroup_.style.display = "block";
+  if (opt_colour) {
+    var r = parseInt(opt_colour.substring(1, 3), 16);
+    var g = parseInt(opt_colour.substring(3, 5), 16);
+    var b = parseInt(opt_colour.substring(5, 7), 16);
+    var colour = "#";
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * r).toString(16);
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * g).toString(16);
+    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * b).toString(16);
+    this.svgBackground_.setAttribute("style", "fill: " + colour);
+  }
   var margin = this.CORNER_RADIUS;
   var initialX = Blockly.RTL ? this.width_ : margin + Blockly.BlockSvg.TAB_WIDTH;
   var cursor = {x:initialX, y:margin};
@@ -24522,6 +24533,7 @@ Blockly.Toolbox.prototype.init = function(blockSpace, blockSpaceEditor) {
   this.populate_();
   tree.render(this.HtmlDiv);
   goog.events.listen(window, goog.events.EventType.RESIZE, goog.partial(this.position_, blockSpaceEditor), false, this);
+  this.addColour_();
   this.position_(blockSpaceEditor);
   this.enabled = true;
 };
@@ -24553,6 +24565,7 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
 Blockly.Toolbox.prototype.populate_ = function() {
   var rootOut = this.tree_;
   rootOut.blocks = [];
+  var hasColours = false;
   function syncTrees(treeIn, treeOut) {
     for (var i = 0, childIn;childIn = treeIn.childNodes[i];i++) {
       if (!childIn.tagName) {
@@ -24560,7 +24573,12 @@ Blockly.Toolbox.prototype.populate_ = function() {
       }
       var name = childIn.tagName.toUpperCase();
       if (name === "CATEGORY") {
-        var childOut = rootOut.createNode(childIn.getAttribute("name"));
+        var catMsg = childIn.getAttribute("name");
+        var catname = Blockly.Msg[catMsg];
+        if (!catname) {
+          catname = catMsg;
+        }
+        var childOut = rootOut.createNode(catname);
         childOut.blocks = [];
         treeOut.add(childOut);
         var custom = childIn.getAttribute("custom");
@@ -24568,6 +24586,17 @@ Blockly.Toolbox.prototype.populate_ = function() {
           childOut.blocks[0] = custom;
         }
         syncTrees(childIn, childOut);
+        var colour = childIn.getAttribute("colour");
+        if (goog.isString(colour)) {
+          if (colour.match(/^#[0-9a-fA-F]{6}$/)) {
+            childOut.hexColour = colour;
+          } else {
+            childOut.hexColour = Blockly.hueToRgb(colour);
+          }
+          hasColours = true;
+        } else {
+          childOut.hexColour = "";
+        }
       } else {
         if (name === "BLOCK") {
           treeOut.blocks.push(childIn);
@@ -24576,6 +24605,7 @@ Blockly.Toolbox.prototype.populate_ = function() {
     }
   }
   syncTrees(Blockly.languageTree, this.tree_);
+  this.hasColours_ = hasColours;
   if (rootOut.blocks.length) {
     throw "Toolbox cannot have both blocks and categories in the root level.";
   }
@@ -24626,9 +24656,16 @@ Blockly.Toolbox.TreeControl.prototype.setSelectedItem = function(node) {
   }
   goog.ui.tree.TreeControl.prototype.setSelectedItem.call(this, node);
   if (node && node.blocks && node.blocks.length) {
-    this.toolbox_.flyout_.show(node.blocks);
+    this.toolbox_.flyout_.show(node.blocks, node.hexColour);
   } else {
     this.toolbox_.flyout_.hide();
+  }
+  if (node) {
+    if (!this.toolbox_.hasSvg_) {
+      var hexColour = node.hexColour || "#57e";
+      node.getRowElement().style.backgroundColor = hexColour;
+    }
+    this.toolbox_.addColour_(node, true);
   }
 };
 Blockly.Toolbox.TreeNode = function(toolbox, html, opt_config, opt_domHelper) {
@@ -24665,6 +24702,18 @@ Blockly.Toolbox.TreeNode.prototype.onMouseDown = function(e) {
   e.stopPropagation();
 };
 Blockly.Toolbox.TreeNode.prototype.onDoubleClick_ = function(e) {
+};
+Blockly.Toolbox.prototype.addColour_ = function(opt_tree, opt_sub) {
+  var tree = opt_tree || this.tree_;
+  var currentColour = tree.hexColour;
+  var children = tree.getChildren();
+  for (var i = 0, child;child = children[i];i++) {
+    var element = child.getRowElement();
+    if (element && !!child.hexColour) {
+      element.style["background-color"] = child.hexColour;
+    }
+    this.addColour_(child, true);
+  }
 };
 goog.provide("Blockly.Variables");
 goog.require("Blockly.Toolbox");
@@ -29224,11 +29273,11 @@ Blockly.Css.CONTENT = [".blocklyFieldAngleTextInput {", "  border: 1px solid #cc
 "  overflow-y: auto;", "  position: absolute;", "}", ".blocklyTreeRoot {", "  padding: 4px 0;", "}", ".blocklyTreeRoot:focus {", "  outline: none;", "}", ".blocklyTreeRow {", "  line-height: 22px;", "  height: 22px;", "  padding-right: 1em;", "  white-space: nowrap;", "}", '.blocklyToolboxDiv[dir="RTL"] .blocklyTreeRow {', "  padding-right: 0;", "  padding-left: 1em !important;", "}", ".blocklyTreeRow:hover {", "  background-color: #e4e4e4;", "}", ".blocklyTreeIcon {", "  height: 16px;", "  width: 16px;", 
 "  vertical-align: middle;", "  background-image: url(%TREE_PATH%);", "}", ".blocklyTreeIconClosedLtr {", "  background-position: -32px -1px;", "}", ".blocklyTreeIconClosedRtl {", "  background-position: 0px -1px;", "}", ".blocklyTreeIconOpen {", "  background-position: -16px -1px;", "}", ".blocklyTreeIconNone {", "  background-position: -48px -1px;", "}", ".blocklyTreeSelected>.blocklyTreeIconClosedLtr {", "  background-position: -32px -17px;", "}", ".blocklyTreeSelected>.blocklyTreeIconClosedRtl {", 
 "  background-position: 0px -17px;", "}", ".blocklyTreeSelected>.blocklyTreeIconOpen {", "  background-position: -16px -17px;", "}", ".blocklyTreeSelected>.blocklyTreeIconNone {", "  background-position: -48px -17px;", "}", ".blocklyTreeLabel {", "  cursor: default;", "  font-family: sans-serif;", "  font-size: 16px;", "  padding: 0 3px;", "  vertical-align: middle;", "  -moz-user-select: none;", "  -webkit-user-select: none;", "  -ms-user-select: none;", "  user-select: none;", "}", ".blocklyTreeSelected {", 
-"  background-color: #57e !important;", "}", ".blocklyTreeSelected .blocklyTreeLabel {", "  color: #fff;", "}", ".blocklyArrow {", "  font-size: 80%;", "}", ".paramToolbox {", "  padding: 0 0 5px 0;", "  pointer-events: auto;", "}", ".paramToolbox input, .paramToolbox textarea {", "  box-sizing: border-box;", "  width: 100%;", "  margin: 0;", "  resize: none;", "}", ".paramToolbox input, .paramToolbox button {", "  height: 30px;", "  margin: 0;", "}", ".paramToolbox div {", "  margin: 4px 10px;", 
-"}", "#modalContainer {", "  position: absolute;", "  width: 100%;", "  bottom: 0;", "}", "#modalContainer > svg {", "  position: absolute;", "  top: 0;", "  left: 0;", "  background: transparent;", "  pointer-events: none;", "}", "#modalContainer > svg * {", "  pointer-events: visiblePainted;", "}", "/*", " * Copyright 2007 The Closure Library Authors. All Rights Reserved.", " *", " * Use of this source code is governed by the Apache License, Version 2.0.", " * See the COPYING file for details.", 
-" */", "/* Author: pupius@google.com (Daniel Pupius) */", "/*", " Styles to make the colorpicker look like the old gmail color picker", " NOTE: without CSS scoping this will override styles defined in palette.css", "*/", ".goog-palette {", "  outline: none;", "  cursor: default;", "}", ".goog-palette-table {", "  border: 1px solid #666;", "  border-collapse: collapse;", "}", ".goog-palette-cell {", "  height: 25px;", "  width: 25px;", "  margin: 0;", "  border: 0;", "  text-align: center;", "  vertical-align: middle;", 
-"  border-right: 1px solid #666;", "  font-size: 1px;", "}", ".goog-palette-colorswatch {", "  position: relative;", "  height: 25px;", "  width: 25px;", "  border: 1px solid #666;", "}", ".goog-palette-cell-hover .goog-palette-colorswatch {", "  border: 1px solid #FFF;", "}", ".goog-palette-cell-selected .goog-palette-colorswatch {", "  border: 1px solid #000;", "  color: #fff;", "}", ".goog-menu {", "  background: #fff;", "  border-color: #ccc #666 #666 #ccc;", "  border-style: solid;", "  border-width: 1px;", 
-"  cursor: default;", "  font: normal 13px Arial, sans-serif;", "  margin: 0;", "  outline: none;", "  padding: 4px 0;", "  position: absolute;", "  z-index: 20000;", "}", ".goog-menuitem {", "  color: #000;", "  font: normal 13px Arial, sans-serif;", "  list-style: none;", "  margin: 0;", "  padding: 4px 7em 4px 28px;", "  white-space: nowrap;", "}", ".goog-menuitem.goog-menuitem-rtl {", "  padding-left: 7em;", "  padding-right: 28px;", "}", ".goog-menu-nocheckbox .goog-menuitem,", ".goog-menu-noicon .goog-menuitem {", 
+"}", ".blocklyTreeSelected .blocklyTreeLabel {", "  color: #fff;", "}", ".blocklyArrow {", "  font-size: 80%;", "}", ".paramToolbox {", "  padding: 0 0 5px 0;", "  pointer-events: auto;", "}", ".paramToolbox input, .paramToolbox textarea {", "  box-sizing: border-box;", "  width: 100%;", "  margin: 0;", "  resize: none;", "}", ".paramToolbox input, .paramToolbox button {", "  height: 30px;", "  margin: 0;", "}", ".paramToolbox div {", "  margin: 4px 10px;", "}", "#modalContainer {", "  position: absolute;", 
+"  width: 100%;", "  bottom: 0;", "}", "#modalContainer > svg {", "  position: absolute;", "  top: 0;", "  left: 0;", "  background: transparent;", "  pointer-events: none;", "}", "#modalContainer > svg * {", "  pointer-events: visiblePainted;", "}", "/*", " * Copyright 2007 The Closure Library Authors. All Rights Reserved.", " *", " * Use of this source code is governed by the Apache License, Version 2.0.", " * See the COPYING file for details.", " */", "/* Author: pupius@google.com (Daniel Pupius) */", 
+"/*", " Styles to make the colorpicker look like the old gmail color picker", " NOTE: without CSS scoping this will override styles defined in palette.css", "*/", ".goog-palette {", "  outline: none;", "  cursor: default;", "}", ".goog-palette-table {", "  border: 1px solid #666;", "  border-collapse: collapse;", "}", ".goog-palette-cell {", "  height: 25px;", "  width: 25px;", "  margin: 0;", "  border: 0;", "  text-align: center;", "  vertical-align: middle;", "  border-right: 1px solid #666;", 
+"  font-size: 1px;", "}", ".goog-palette-colorswatch {", "  position: relative;", "  height: 25px;", "  width: 25px;", "  border: 1px solid #666;", "}", ".goog-palette-cell-hover .goog-palette-colorswatch {", "  border: 1px solid #FFF;", "}", ".goog-palette-cell-selected .goog-palette-colorswatch {", "  border: 1px solid #000;", "  color: #fff;", "}", ".goog-menu {", "  background: #fff;", "  border-color: #ccc #666 #666 #ccc;", "  border-style: solid;", "  border-width: 1px;", "  cursor: default;", 
+"  font: normal 13px Arial, sans-serif;", "  margin: 0;", "  outline: none;", "  padding: 4px 0;", "  position: absolute;", "  z-index: 20000;", "}", ".goog-menuitem {", "  color: #000;", "  font: normal 13px Arial, sans-serif;", "  list-style: none;", "  margin: 0;", "  padding: 4px 7em 4px 28px;", "  white-space: nowrap;", "}", ".goog-menuitem.goog-menuitem-rtl {", "  padding-left: 7em;", "  padding-right: 28px;", "}", ".goog-menu-nocheckbox .goog-menuitem,", ".goog-menu-noicon .goog-menuitem {", 
 "  padding-left: 12px;", "}", ".goog-menu-noaccel .goog-menuitem:not(.goog-menuitem-rtl) {", "  padding-right: 20px;", "}", ".goog-menu-noaccel .goog-menuitem.goog-menuitem-rtl {", "  padding-left: 20px;", "}", ".goog-menuitem-content {", "  color: #000;", "  font-size: 15px;", "}", ".goog-menuitem-disabled .goog-menuitem-accel,", ".goog-menuitem-disabled .goog-menuitem-content {", "  color: #ccc !important;", "}", ".goog-menuitem-disabled .goog-menuitem-icon {", "  opacity: 0.3;", "  -moz-opacity: 0.3;", 
 "  filter: alpha(opacity=30);", "}", ".goog-menuitem-highlight,", ".goog-menuitem-hover {", "  background-color: #d6e9f8;", "  border-color: #d6e9f8;", "  border-style: dotted;", "  border-width: 1px 0;", "  padding-bottom: 3px;", "  padding-top: 3px;", "}", ".goog-menuitem-checkbox,", ".goog-menuitem-icon {", "  background-repeat: no-repeat;", "  height: 16px;", "  left: 6px;", "  position: absolute;", "  right: auto;", "  vertical-align: middle;", "  width: 16px;", "}", ".goog-menuitem-rtl .goog-menuitem-checkbox,", 
 ".goog-menuitem-rtl .goog-menuitem-icon {", "  left: auto;", "  right: 6px;", "}", ".goog-option-selected .goog-menuitem-checkbox,", ".goog-option-selected .goog-menuitem-icon {", "}", ".goog-menuitem-accel {", "  color: #999;", "  direction: ltr;", "  left: auto;", "  padding: 0 6px;", "  position: absolute;", "  right: 0;", "  text-align: right;", "}", ".goog-menuitem-rtl .goog-menuitem-accel {", "  left: 0;", "  right: auto;", "  text-align: left;", "}", ".goog-menuitem-mnemonic-hint {", "  text-decoration: underline;", 

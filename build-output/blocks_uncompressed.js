@@ -462,7 +462,7 @@ Blockly.Blocks.logic_ternary = {init:function() {
 Blockly.Blocks.loops = {};
 Blockly.Blocks.controls_repeat = {init:function() {
   this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.appendDummyInput().appendTitle(Blockly.Msg.CONTROLS_REPEAT_TITLE_REPEAT).appendTitle(new Blockly.FieldTextInput("10", Blockly.FieldTextInput.nonnegativeIntegerValidator), "TIMES").appendTitle(Blockly.Msg.CONTROLS_REPEAT_TITLE_TIMES);
   this.appendStatementInput("DO").appendTitle(Blockly.Msg.CONTROLS_REPEAT_INPUT_DO);
   this.setPreviousStatement(!0);
@@ -471,7 +471,7 @@ Blockly.Blocks.controls_repeat = {init:function() {
 }};
 Blockly.Blocks.controls_repeat_ext = {init:function() {
   this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.interpolateMsg(Blockly.Msg.CONTROLS_REPEAT_TITLE, ["TIMES", "Number", Blockly.ALIGN_RIGHT], Blockly.ALIGN_RIGHT);
   this.appendStatementInput("DO").appendTitle(Blockly.Msg.CONTROLS_REPEAT_INPUT_DO);
   this.setPreviousStatement(!0);
@@ -482,7 +482,7 @@ Blockly.Blocks.controls_repeat_ext = {init:function() {
 Blockly.Blocks.controls_whileUntil = {init:function() {
   var a = [[Blockly.Msg.CONTROLS_WHILEUNTIL_OPERATOR_WHILE, "WHILE"], [Blockly.Msg.CONTROLS_WHILEUNTIL_OPERATOR_UNTIL, "UNTIL"]];
   this.setHelpUrl(Blockly.Msg.CONTROLS_WHILEUNTIL_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.appendValueInput("BOOL").setCheck(Blockly.BlockValueType.BOOLEAN).appendTitle(new Blockly.FieldDropdown(a), "MODE");
   this.appendStatementInput("DO").appendTitle(Blockly.Msg.CONTROLS_WHILEUNTIL_INPUT_DO);
   this.setPreviousStatement(!0);
@@ -495,7 +495,7 @@ Blockly.Blocks.controls_whileUntil = {init:function() {
 }};
 Blockly.Blocks.controls_for = {init:function() {
   this.setHelpUrl(Blockly.Msg.CONTROLS_FOR_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.appendDummyInput().appendTitle(Blockly.Msg.CONTROLS_FOR_INPUT_WITH).appendTitle(new Blockly.FieldVariable(null), "VAR");
   this.interpolateMsg(Blockly.Msg.CONTROLS_FOR_INPUT_FROM_TO_BY, ["FROM", "Number", Blockly.ALIGN_RIGHT], ["TO", "Number", Blockly.ALIGN_RIGHT], ["BY", "Number", Blockly.ALIGN_RIGHT], Blockly.ALIGN_RIGHT);
   this.appendStatementInput("DO").appendTitle(Blockly.Msg.CONTROLS_FOR_INPUT_DO);
@@ -524,7 +524,7 @@ Blockly.Blocks.controls_for = {init:function() {
 }};
 Blockly.Blocks.controls_forEach = {init:function() {
   this.setHelpUrl(Blockly.Msg.CONTROLS_FOREACH_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.appendValueInput("LIST").setCheck(Blockly.BlockValueType.ARRAY).appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_ITEM).appendTitle(new Blockly.FieldVariable(null), "VAR").appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_INLIST);
   Blockly.Msg.CONTROLS_FOREACH_INPUT_INLIST_TAIL && (this.appendDummyInput().appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_INLIST_TAIL), this.setInputsInline(!0));
   this.appendStatementInput("DO").appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_DO);
@@ -542,7 +542,7 @@ Blockly.Blocks.controls_forEach = {init:function() {
 Blockly.Blocks.controls_flow_statements = {init:function() {
   var a = [[Blockly.Msg.CONTROLS_FLOW_STATEMENTS_OPERATOR_BREAK, "BREAK"], [Blockly.Msg.CONTROLS_FLOW_STATEMENTS_OPERATOR_CONTINUE, "CONTINUE"]];
   this.setHelpUrl(Blockly.Msg.CONTROLS_FLOW_STATEMENTS_HELPURL);
-  this.setHSV(322, 0.90, 0.95);
+  this.setHSV(120, 0.448, 0.647);
   this.appendDummyInput().appendTitle(new Blockly.FieldDropdown(a), "FLOW");
   this.setPreviousStatement(!0);
   var b = this;

@@ -32,7 +32,7 @@ Blockly.Blocks.controls_repeat = {
   // Repeat n times (internal number).
   init: function() {
     this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.appendDummyInput()
         .appendTitle(Blockly.Msg.CONTROLS_REPEAT_TITLE_REPEAT)
         .appendTitle(new Blockly.FieldTextInput('10',
@@ -50,7 +50,7 @@ Blockly.Blocks.controls_repeat_ext = {
   // Repeat n times (external number).
   init: function() {
     this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.interpolateMsg(Blockly.Msg.CONTROLS_REPEAT_TITLE,
                         ['TIMES', 'Number', Blockly.ALIGN_RIGHT],
                         Blockly.ALIGN_RIGHT);
@@ -70,7 +70,7 @@ Blockly.Blocks.controls_whileUntil = {
         [[Blockly.Msg.CONTROLS_WHILEUNTIL_OPERATOR_WHILE, 'WHILE'],
          [Blockly.Msg.CONTROLS_WHILEUNTIL_OPERATOR_UNTIL, 'UNTIL']];
     this.setHelpUrl(Blockly.Msg.CONTROLS_WHILEUNTIL_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.appendValueInput('BOOL')
         .setCheck(Blockly.BlockValueType.BOOLEAN)
         .appendTitle(new Blockly.FieldDropdown(OPERATORS), 'MODE');
@@ -95,7 +95,7 @@ Blockly.Blocks.controls_for = {
   // For loop.
   init: function() {
     this.setHelpUrl(Blockly.Msg.CONTROLS_FOR_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.appendDummyInput()
         .appendTitle(Blockly.Msg.CONTROLS_FOR_INPUT_WITH)
         .appendTitle(new Blockly.FieldVariable(null), 'VAR');
@@ -148,7 +148,7 @@ Blockly.Blocks.controls_forEach = {
   // For each loop.
   init: function() {
     this.setHelpUrl(Blockly.Msg.CONTROLS_FOREACH_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.appendValueInput('LIST')
         .setCheck(Blockly.BlockValueType.ARRAY)
         .appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_ITEM)
@@ -188,7 +188,7 @@ Blockly.Blocks.controls_flow_statements = {
         [[Blockly.Msg.CONTROLS_FLOW_STATEMENTS_OPERATOR_BREAK, 'BREAK'],
          [Blockly.Msg.CONTROLS_FLOW_STATEMENTS_OPERATOR_CONTINUE, 'CONTINUE']];
     this.setHelpUrl(Blockly.Msg.CONTROLS_FLOW_STATEMENTS_HELPURL);
-    this.setHSV(322, 0.90, 0.95);
+    this.setHSV(120, 0.448, 0.647);
     this.appendDummyInput()
         .appendTitle(new Blockly.FieldDropdown(OPERATORS), 'FLOW');
     this.setPreviousStatement(true);

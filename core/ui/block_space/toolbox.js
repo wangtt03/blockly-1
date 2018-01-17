@@ -134,6 +134,8 @@ Blockly.Toolbox.prototype.init = function(blockSpace, blockSpaceEditor) {
   // If the document resizes, reposition the toolbox.
   goog.events.listen(window, goog.events.EventType.RESIZE,
                      goog.partial(this.position_, blockSpaceEditor), false, this);
+                     
+  this.addColour_();
   this.position_(blockSpaceEditor);
   this.enabled = true;
 };
@@ -180,6 +182,7 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
 Blockly.Toolbox.prototype.populate_ = function() {
   var rootOut = this.tree_;
   rootOut.blocks = [];
+  var hasColours = false;
   function syncTrees(treeIn, treeOut) {
     for (var i = 0, childIn; childIn = treeIn.childNodes[i]; i++) {
       if (!childIn.tagName) {
@@ -188,7 +191,12 @@ Blockly.Toolbox.prototype.populate_ = function() {
       }
       var name = childIn.tagName.toUpperCase();
       if (name === 'CATEGORY') {
-        var childOut = rootOut.createNode(childIn.getAttribute('name'));
+        var catMsg = childIn.getAttribute('name');
+        var catname = Blockly.Msg[catMsg];
+        if (!catname) {
+          catname = catMsg;
+        }
+        var childOut = rootOut.createNode(catname);
         childOut.blocks = [];
         treeOut.add(childOut);
         var custom = childIn.getAttribute('custom');
@@ -198,13 +206,26 @@ Blockly.Toolbox.prototype.populate_ = function() {
         }
 
         syncTrees(childIn, childOut);
+
+        var colour = childIn.getAttribute('colour');
+        if (goog.isString(colour)) {
+          if (colour.match(/^#[0-9a-fA-F]{6}$/)) {
+            childOut.hexColour = colour;
+          } else {
+            childOut.hexColour = Blockly.hueToRgb(colour);
+          }
+          hasColours = true;
+        } else {
+          childOut.hexColour = '';
+        }
+        
       } else if (name === 'BLOCK') {
         treeOut.blocks.push(childIn);
       }
     }
   }
   syncTrees(Blockly.languageTree, this.tree_);
-
+  this.hasColours_ = hasColours;
   if (rootOut.blocks.length) {
     throw 'Toolbox cannot have both blocks and categories in the root level.';
   }
@@ -319,10 +340,18 @@ Blockly.Toolbox.TreeControl.prototype.setSelectedItem = function(node) {
   }
   goog.ui.tree.TreeControl.prototype.setSelectedItem.call(this, node);
   if (node && node.blocks && node.blocks.length) {
-    this.toolbox_.flyout_.show(node.blocks);
+    this.toolbox_.flyout_.show(node.blocks, node.hexColour);
   } else {
     // Hide the flyout.
     this.toolbox_.flyout_.hide();
+  }
+
+  if (node) {
+    if (!this.toolbox_.hasSvg_) {
+      var hexColour = node.hexColour || '#57e';
+      node.getRowElement().style.backgroundColor = hexColour;
+    }
+    this.toolbox_.addColour_(node, true);
   }
 };
 
@@ -402,4 +431,23 @@ Blockly.Toolbox.TreeNode.prototype.onMouseDown = function(e) {
  */
 Blockly.Toolbox.TreeNode.prototype.onDoubleClick_ = function(e) {
   // NOP.
+};
+
+/**
+ * Recursively add colours to this toolbox.
+ * @param {Blockly.Toolbox.TreeNode} opt_tree Starting point of tree.
+ *     Defaults to the root node.
+ * @private
+ */
+Blockly.Toolbox.prototype.addColour_ = function(opt_tree, opt_sub) {
+  var tree = opt_tree || this.tree_; 
+  var currentColour = tree.hexColour;
+  var children = tree.getChildren();
+  for (var i = 0, child; child = children[i]; i++) {
+    var element = child.getRowElement();
+    if (element && !!child.hexColour) {
+      element.style['background-color']= child.hexColour;
+    }
+    this.addColour_(child, true);
+  }
 };
