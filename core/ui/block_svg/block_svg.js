@@ -64,11 +64,11 @@ Blockly.BlockSvg = function(block) {
 };
 
 Blockly.BlockSvg.prototype.initChildren = function () {
-  this.svgPathDark_ = Blockly.createSvgElement('path', {
-    'class': 'blocklyPathDark',
-    'transform': 'translate(1, 1)',
-    'fill-rule': 'evenodd'
-  }, this.svgGroup_);
+  // this.svgPathDark_ = Blockly.createSvgElement('path', {
+  //   'class': 'blocklyPathDark',
+  //   'transform': 'translate(1, 1)',
+  //   'fill-rule': 'evenodd'
+  // }, this.svgGroup_);
   this.svgPath_ = Blockly.createSvgElement('path', {
     'class': 'blocklyPath',
     'fill-rule': 'evenodd'
@@ -166,7 +166,7 @@ BS.INLINE_PADDING_Y = 5;
  * Minimum height of a block.
  * @const
  */
-BS.MIN_BLOCK_Y = 25;
+BS.MIN_BLOCK_Y = 36;
 /**
  * Height of horizontal puzzle tab.
  * @const
@@ -187,12 +187,12 @@ BS.NOTCH_WIDTH = 30;
  * Rounded corner radius.
  * @const
  */
-BS.CORNER_RADIUS = 8;
+BS.CORNER_RADIUS = 5;
 /**
  * Minimum height of title rows.
  * @const
  */
-BS.TITLE_HEIGHT = 18;
+BS.TITLE_HEIGHT = 23;
 /**
  * Distance from shape edge to intersect with a curved corner at 45 degrees.
  * Applies to highlighting on around the inside of a curve.
@@ -335,7 +335,8 @@ Blockly.BlockSvg.prototype.getPadding = function() {
  * bounding box.  Add 5px control point to the top of the path.
 */
 function brokenControlPointWorkaround() {
-  return Blockly.BROKEN_CONTROL_POINTS ? 'c 0,5 0,-5 0,0' : '';
+  // return Blockly.BROKEN_CONTROL_POINTS ? 'c 0,5 0,-5 0,0' : '';
+  return '';
 }
 
 /**
@@ -354,7 +355,7 @@ Blockly.BlockSvg.prototype.dispose = function() {
   this.svgGroup_ = null;
   this.svgPath_ = null;
   this.svgPathLight_ = null;
-  this.svgPathDark_ = null;
+  // this.svgPathDark_ = null;
   // dispose of children
   if (this.isUnused()) {
     this.unusedSvg_.dispose();
@@ -493,9 +494,9 @@ Blockly.BlockSvg.prototype.updateColour = function() {
 Blockly.BlockSvg.prototype.updateToColour_ = function(hexColour) {
   var rgb = goog.color.hexToRgb(hexColour);
   var rgbLight = goog.color.lighten(rgb, 0.3);
-  var rgbDark = goog.color.darken(rgb, 0.4);
-  this.svgPathLight_.setAttribute('stroke', goog.color.rgbArrayToHex(rgbLight));
-  this.svgPathDark_.setAttribute('fill', goog.color.rgbArrayToHex(rgbDark));
+  var rgbDark = goog.color.darken(rgb, 0.2);
+  this.svgPathLight_.setAttribute('stroke', goog.color.rgbArrayToHex(rgbDark));
+  // this.svgPathDark_.setAttribute('fill', goog.color.rgbArrayToHex(rgbDark));
   this.svgPath_.setAttribute('fill', hexColour);
   var pattern = this.block_.getFillPattern();
   if (pattern) {
@@ -845,7 +846,7 @@ function inputRenderSize(input) {
     var linkedBlock = input.connection.targetBlock();
     var bBox = linkedBlock.getHeightWidth();
     renderHeight = Math.max(renderHeight, bBox.height);
-    renderWidth = Math.max(renderWidth, bBox.width);
+    renderWidth = Math.max(renderWidth, bBox.width) - renderHeight/2;
     renderHeight += input.getStatementTrailingSpace();
   }
 
@@ -967,14 +968,14 @@ Blockly.BlockSvg.prototype.renderDraw_ = function(iconWidth, inputRows) {
   if (this.svgPathFill_) {
     this.svgPathFill_.setAttribute('d', pathString);
   }
-  this.svgPathDark_.setAttribute('d', pathString);
-  pathString = renderInfo.highlight.join(' ') + '\n' + renderInfo.highlightInline.join(' ');
+  // this.svgPathDark_.setAttribute('d', pathString);
+  // pathString = renderInfo.highlight.join(' ') + '\n' + renderInfo.highlightInline.join(' ');
   this.svgPathLight_.setAttribute('d', pathString);
   if (Blockly.RTL) {
     // Mirror the block's path.
     this.svgPath_.setAttribute('transform', 'scale(-1 1)');
     this.svgPathLight_.setAttribute('transform', 'scale(-1 1)');
-    this.svgPathDark_.setAttribute('transform', 'translate(1,1) scale(-1 1)');
+    // this.svgPathDark_.setAttribute('transform', 'translate(1,1) scale(-1 1)');
   }
 };
 
@@ -1143,9 +1144,15 @@ Blockly.BlockSvg.prototype.renderDrawRightDummyInput_ = function (renderInfo,
   }
 
   this.renderTitles_(input.titleRow, titleX, titleY);
-  renderInfo.core.push('v', row.height);
+  renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 " + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
+  renderInfo.core.push("v", row.height - BS.CORNER_RADIUS * 2);
+  renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 -" + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
+  // renderInfo.core.push('a', row.height/2 + " " +row.height/2 + " 0 0 1 0 " + row.height);
   if (Blockly.RTL) {
-    renderInfo.highlight.push('v', row.height - 2);
+    // renderInfo.highlight.push('a', row.height/2 + " " + row.height/2 + " 0 0 1 0 " + row.height);
+    renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 " + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
+    renderInfo.core.push("v", row.height - BS.CORNER_RADIUS * 2);
+    renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 -" + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
   }
 };
 
@@ -1251,14 +1258,18 @@ Blockly.BlockSvg.prototype.renderDrawRightInline_ = function (renderInfo, inputR
     renderInfo.curX += this.renderTitles_(input.titleRow, titleX, titleY);
 
     if (input.type === Blockly.INPUT_VALUE) {
-      renderInfo.curX += input.renderWidth + BS.SEP_SPACE_X;
-      renderInfo.inline.push('M', (renderInfo.curX - BS.SEP_SPACE_X) +
+      renderInfo.curX += input.renderWidth + BS.SEP_SPACE_X + input.renderHeight/2;
+      renderInfo.inline.push('M', (renderInfo.curX - BS.SEP_SPACE_X - input.renderHeight/2) +
                        ',' + (renderInfo.curY + BS.INLINE_PADDING_Y));
       renderInfo.inline.push('h', BS.TAB_WIDTH - input.renderWidth);
       renderInfo.inline.push(BS.TAB_PATH_DOWN);
       renderInfo.inline.push('v', input.renderHeight -
                             BS.TAB_HEIGHT);
       renderInfo.inline.push('h', input.renderWidth - BS.TAB_WIDTH);
+      renderInfo.inline.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 0 " + BS.CORNER_RADIUS + " -" + BS.CORNER_RADIUS);
+      renderInfo.inline.push("v", -(input.renderHeight - BS.CORNER_RADIUS * 2));
+      renderInfo.inline.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 0 -" + BS.CORNER_RADIUS + " -" + BS.CORNER_RADIUS);
+      // renderInfo.inline.push('a', input.renderHeight/2 + " " + input.renderHeight/2 + " 0 0 0 0 -" + input.renderHeight);
       renderInfo.inline.push('z');
       if (Blockly.RTL) {
         // Highlight right edge, around back of tab, and bottom.
@@ -1274,7 +1285,10 @@ Blockly.BlockSvg.prototype.renderDrawRightInline_ = function (renderInfo, inputR
         renderInfo.highlightInline.push('M',
             (renderInfo.curX - BS.SEP_SPACE_X + 1) + ',' +
             (renderInfo.curY + BS.INLINE_PADDING_Y + 1));
-        renderInfo.highlightInline.push('v', input.renderHeight);
+        // renderInfo.highlightInline.push('a', input.renderHeight/2 + " " + input.renderHeight/2 + " 0 0 1 0 " + input.renderHeight);
+        renderInfo.highlightInline.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 0 " + BS.CORNER_RADIUS + " -" + BS.CORNER_RADIUS);
+        renderInfo.highlightInline.push("v", -(input.renderHeight - BS.CORNER_RADIUS * 2));
+        renderInfo.highlightInline.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 0 -" + BS.CORNER_RADIUS + " -" + BS.CORNER_RADIUS);
         renderInfo.highlightInline.push('h', BS.TAB_WIDTH - input.renderWidth);
         renderInfo.highlightInline.push('M',
           (renderInfo.curX - input.renderWidth - BS.SEP_SPACE_X +
@@ -1284,7 +1298,7 @@ Blockly.BlockSvg.prototype.renderDrawRightInline_ = function (renderInfo, inputR
       }
       // Create inline input connection.
       var connectionX = connectionsXY.x + oppositeIfRTL(renderInfo.curX + BS.TAB_WIDTH -
-        BS.SEP_SPACE_X - input.renderWidth + 1);
+        BS.SEP_SPACE_X - input.renderWidth - input.renderHeight/2 + 1);
 
       var connectionY = connectionsXY.y + renderInfo.curY + BS.INLINE_PADDING_Y;
       input.connection.moveTo(connectionX, connectionY);
@@ -1308,7 +1322,10 @@ Blockly.BlockSvg.prototype.renderDrawRightInline_ = function (renderInfo, inputR
     // functional inputs
     renderInfo.highlight.push('H', renderInfo.curX + (Blockly.RTL ? -1 : 0));
   }
-  renderInfo.core.push('v', row.height);
+  // renderInfo.core.push("a", row.height/2 + " " + row.height/2 + " 0 0 1 0 " + row.height);
+  renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 " + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
+  renderInfo.core.push("v", row.height - BS.CORNER_RADIUS * 2);
+  renderInfo.core.push('a', BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS + " 0 0 1 -" + BS.CORNER_RADIUS + " " + BS.CORNER_RADIUS);
   if (Blockly.RTL) {
     renderInfo.highlight.push('v', row.height - 2);
   }
