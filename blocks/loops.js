@@ -34,6 +34,7 @@ Blockly.Blocks.controls_repeat = {
     this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
     this.setHSV(120, 0.448, 0.647);
     this.appendDummyInput()
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/loop.png"))
         .appendTitle(Blockly.Msg.CONTROLS_REPEAT_TITLE_REPEAT)
         .appendTitle(new Blockly.FieldTextInput('10',
             Blockly.FieldTextInput.nonnegativeIntegerValidator), 'TIMES')
@@ -51,6 +52,8 @@ Blockly.Blocks.controls_repeat_ext = {
   init: function() {
     this.setHelpUrl(Blockly.Msg.CONTROLS_REPEAT_HELPURL);
     this.setHSV(120, 0.448, 0.647);
+    this.appendDummyInput()
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/loop.png"));
     this.interpolateMsg(Blockly.Msg.CONTROLS_REPEAT_TITLE,
                         ['TIMES', 'Number', Blockly.ALIGN_RIGHT],
                         Blockly.ALIGN_RIGHT);
@@ -73,6 +76,7 @@ Blockly.Blocks.controls_whileUntil = {
     this.setHSV(120, 0.448, 0.647);
     this.appendValueInput('BOOL')
         .setCheck(Blockly.BlockValueType.BOOLEAN)
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/loop.png"))
         .appendTitle(new Blockly.FieldDropdown(OPERATORS), 'MODE');
     this.appendStatementInput('DO')
         .appendTitle(Blockly.Msg.CONTROLS_WHILEUNTIL_INPUT_DO);
@@ -97,6 +101,7 @@ Blockly.Blocks.controls_for = {
     this.setHelpUrl(Blockly.Msg.CONTROLS_FOR_HELPURL);
     this.setHSV(120, 0.448, 0.647);
     this.appendDummyInput()
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/loop.png"))
         .appendTitle(Blockly.Msg.CONTROLS_FOR_INPUT_WITH)
         .appendTitle(new Blockly.FieldVariable(null), 'VAR');
     this.interpolateMsg(Blockly.Msg.CONTROLS_FOR_INPUT_FROM_TO_BY,
@@ -151,6 +156,7 @@ Blockly.Blocks.controls_forEach = {
     this.setHSV(120, 0.448, 0.647);
     this.appendValueInput('LIST')
         .setCheck(Blockly.BlockValueType.ARRAY)
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/loop.png"))
         .appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_ITEM)
         .appendTitle(new Blockly.FieldVariable(null), 'VAR')
         .appendTitle(Blockly.Msg.CONTROLS_FOREACH_INPUT_INLIST);

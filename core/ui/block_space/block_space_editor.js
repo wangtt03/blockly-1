@@ -552,10 +552,10 @@ Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
     else {
       container.bBox_ = container.getBBox();
     }
-    if (container.bBox_.height > 50) {
-      // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
-      Blockly.BROKEN_CONTROL_POINTS = true;
-    }
+    // if (container.bBox_.height > 50) {
+    //   // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
+    //   // Blockly.BROKEN_CONTROL_POINTS = true;
+    // }
     this.svg_.removeChild(container);
   }
 };

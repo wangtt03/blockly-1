@@ -113,6 +113,7 @@ Blockly.Css.CONTENT = [
   '}',
   '.blocklyFieldAngleDropdown .goog-menu {',
   '  box-shadow: none;',
+  '  min-height: 150px;',
   '  border-style: none;',
   '}',
   '.blocklyFieldAngleDropdown .goog-menu::after {',

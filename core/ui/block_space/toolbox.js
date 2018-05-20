@@ -26,6 +26,7 @@
 goog.provide('Blockly.Toolbox');
 
 goog.require('Blockly.Flyout');
+goog.require('Blockly.Xml');
 goog.require('goog.events.BrowserFeature');
 goog.require('goog.style');
 goog.require('goog.ui.tree.TreeControl');
@@ -175,6 +176,22 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
   this.trashcanHolder.style["left"] = trashcanX + 'px';
 };
 
+Blockly.Toolbox.prototype.updateToolbox = function(tree) {
+  
+  var tree = new Blockly.Toolbox.TreeControl(this, 'root', Blockly.Toolbox.CONFIG_);
+  this.tree_ = tree;
+  tree.setShowRootNode(false);
+  tree.setShowLines(false);
+  tree.setShowExpandIcons(false);
+  tree.setSelectedItem(null);
+  
+  Blockly.languageTree = Blockly.Xml.textToDom(tree);
+  // this.flyout_.init(blockSpace, true);
+  this.populate_();
+  tree.render(this.HtmlDiv);
+  this.addColour_();
+};
+
 /**
  * Fill the toolbox with categories and blocks.
  * @private
@@ -196,7 +213,61 @@ Blockly.Toolbox.prototype.populate_ = function() {
         if (!catname) {
           catname = catMsg;
         }
+
+        switch (catname.trim()) {
+          case 'Actions': {
+            catname = '动作';
+            break;
+          }
+          case 'Loops': {
+            catname = '循环';
+            break;
+          }
+          case 'Events': {
+            catname = '事件';
+            break;
+          }
+          case 'Conditionals': {
+            catname = '条件';
+            break;
+          }
+          case 'Functions': {
+            catname = '函数';
+            break;
+          }
+          case 'Math': {
+            catname = '数学';
+            break;
+          }
+          case 'Variables': {
+            catname = '变量';
+            break;
+          }
+          case 'Brushes': {
+            catname = '画笔';
+            break;
+          }
+          case 'Color': {
+            catname = '颜色';
+            break;
+          }
+          case 'Prebuilt': {
+            catname = '工具';
+            break;
+          }
+          case 'Text': {
+            catname = '文字';
+            break;
+          }
+          case 'Input': {
+            catname = '输入';
+            break;
+          }
+        }
+
+
         var childOut = rootOut.createNode(catname);
+        childOut.categoryName = catname;
         childOut.blocks = [];
         treeOut.add(childOut);
         var custom = childIn.getAttribute('custom');
@@ -205,19 +276,8 @@ Blockly.Toolbox.prototype.populate_ = function() {
           childOut.blocks[0] = custom;
         }
 
+        
         syncTrees(childIn, childOut);
-
-        var colour = childIn.getAttribute('colour');
-        if (goog.isString(colour)) {
-          if (colour.match(/^#[0-9a-fA-F]{6}$/)) {
-            childOut.hexColour = colour;
-          } else {
-            childOut.hexColour = Blockly.hueToRgb(colour);
-          }
-          hasColours = true;
-        } else {
-          childOut.hexColour = '';
-        }
         
       } else if (name === 'BLOCK') {
         treeOut.blocks.push(childIn);
@@ -349,7 +409,7 @@ Blockly.Toolbox.TreeControl.prototype.setSelectedItem = function(node) {
   if (node) {
     if (!this.toolbox_.hasSvg_) {
       var hexColour = node.hexColour || '#57e';
-      node.getRowElement().style.backgroundColor = hexColour;
+      // node.getRowElement().style.backgroundColor = hexColour;
     }
     this.toolbox_.addColour_(node, true);
   }
@@ -445,8 +505,13 @@ Blockly.Toolbox.prototype.addColour_ = function(opt_tree, opt_sub) {
   var children = tree.getChildren();
   for (var i = 0, child; child = children[i]; i++) {
     var element = child.getRowElement();
-    if (element && !!child.hexColour) {
-      element.style['background-color']= child.hexColour;
+    if (element) {
+      if (!!child.hexColour) {
+        element.style['background-color']= child.hexColour;
+      }
+      if (!!child.categoryName) {
+        element.setAttribute("category-name", child.categoryName);
+      }
     }
     this.addColour_(child, true);
   }

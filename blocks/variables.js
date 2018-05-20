@@ -80,6 +80,7 @@ Blockly.Blocks.variables_set = {
     this.setHelpUrl(Blockly.Msg.VARIABLES_SET_HELPURL);
     this.setHSV(312, 0.32, 0.62);
     this.appendValueInput('VALUE')
+        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/variables_set.png"))
         .appendTitle(Blockly.Msg.VARIABLES_SET_TITLE)
         .appendTitle(Blockly.disableVariableEditing ? fieldLabel
           : new Blockly.FieldVariable(Blockly.Msg.VARIABLES_SET_ITEM), 'VAR')

@@ -72,6 +72,9 @@ goog.require('goog.ui.tree.TreeControl');
 goog.require('goog.userAgent');
 
 
+Blockly.assetUrlRoot = "https://images.k12mlmq.com";
+// Blockly.assetUrlRoot = "";
+
 /**
  * Returns an absolute URL to an asset in Blockly's directory.
  * Used for loading additional resources.
