@@ -30,6 +30,7 @@ goog.provide('Blockly');
 goog.require('Blockly.Block');
 goog.require('Blockly.Connection');
 goog.require('Blockly.FieldAngle');
+goog.require('Blockly.FieldButton');
 goog.require('Blockly.FieldCheckbox');
 goog.require('Blockly.FieldColour');
 goog.require('Blockly.FieldColourDropdown');
@@ -71,9 +72,35 @@ goog.require('goog.ui.ColorPicker');
 goog.require('goog.ui.tree.TreeControl');
 goog.require('goog.userAgent');
 
+// Blocks
+goog.require('Blockly.Blocks');
+goog.require('Blockly.Blocks.colour');
+goog.require('Blockly.Blocks.functionalExamples');
+goog.require('Blockly.Blocks.functionalParameters');
+goog.require('Blockly.Blocks.functionalProcedures');
+goog.require('Blockly.Blocks.lists');
+goog.require('Blockly.Blocks.logic');
+goog.require('Blockly.Blocks.loops');
+goog.require('Blockly.Blocks.math');
+goog.require('Blockly.Blocks.procedures');
+goog.require('Blockly.Blocks.text');
+goog.require('Blockly.Blocks.unknown');
+goog.require('Blockly.Blocks.variables');
 
-Blockly.assetUrlRoot = "https://images.k12mlmq.com";
-// Blockly.assetUrlRoot = "";
+// Generators
+goog.require('Blockly.Generator');
+goog.require('Blockly.JavaScript');
+goog.require('Blockly.JavaScript.colour');
+goog.require('Blockly.JavaScript.functionalExamples');
+goog.require('Blockly.JavaScript.functionalParameters');
+goog.require('Blockly.JavaScript.functionalProcedures');
+goog.require('Blockly.JavaScript.lists');
+goog.require('Blockly.JavaScript.logic');
+goog.require('Blockly.JavaScript.loops');
+goog.require('Blockly.JavaScript.math');
+goog.require('Blockly.JavaScript.procedures');
+goog.require('Blockly.JavaScript.text');
+goog.require('Blockly.JavaScript.variables');
 
 /**
  * Returns an absolute URL to an asset in Blockly's directory.
@@ -290,3 +317,5 @@ Blockly.removeAllRanges = function() {
     }
   }
 };
+
+Blockly.assetUrlRoot = "https://images.k12mlmq.com";

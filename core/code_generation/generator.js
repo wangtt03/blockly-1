@@ -122,7 +122,9 @@ Blockly.Generator.xmlToCode = function(name, xml) {
  */
 Blockly.Generator.xmlToBlocks = function(name, xml) {
   var div = document.createElement('div');
-  var blockSpace = Blockly.BlockSpace.createReadOnlyBlockSpace(div, xml);
+  var blockSpace = Blockly.BlockSpace.createReadOnlyBlockSpace(div, xml, {
+    disableEventBindings: true,
+  });
   return blockSpace.getTopBlocks(true);
 };
 
@@ -166,27 +168,6 @@ Blockly.Generator.prefixLines = function(text, prefix) {
 };
 
 /**
- * Recursively spider a tree of blocks, returning all their comments.
- * @param {!Blockly.Block} block The block from which to start spidering.
- * @return {string} Concatenated list of comments.
- */
-Blockly.Generator.allNestedComments = function(block) {
-  var comments = [];
-  var blocks = block.getDescendants();
-  for (var x = 0; x < blocks.length; x++) {
-    var comment = blocks[x].getCommentText();
-    if (comment) {
-      comments.push(comment);
-    }
-  }
-  // Append an empty string to create a trailing line break when joined.
-  if (comments.length) {
-    comments.push('');
-  }
-  return comments.join('\n');
-};
-
-/**
  * Class for a code generator that translates the blocks into a language.
  * @param {string} name Language name of this generator.
  * @constructor
@@ -218,8 +199,7 @@ Blockly.CodeGenerator.prototype.blockToCode = function(block, opt_showHidden) {
 
   var func = this[block.type];
   if (!func) {
-    throw 'Language "' + this.name_ + '" does not know how to generate code ' +
-        'for block type "' + block.type + '".';
+    return Blockly.Generator.prefixLines('Unknown block: ' + block.type + '\n', '// ');
   }
   var code = func.call(block);
 

@@ -26,7 +26,6 @@
 goog.provide('Blockly.Toolbox');
 
 goog.require('Blockly.Flyout');
-goog.require('Blockly.Xml');
 goog.require('goog.events.BrowserFeature');
 goog.require('goog.style');
 goog.require('goog.ui.tree.TreeControl');
@@ -85,10 +84,12 @@ Blockly.Toolbox.prototype.createDom = function (svg) {
     height: 90,
     style: 'display: none; position: absolute'
   }, this.HtmlDiv);
-  this.trashcan = new Blockly.Trashcan(this);
-  this.svgTrashcan = this.trashcan.createDom();
-  this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
-  this.trashcanHolder.appendChild(this.svgTrashcan);
+  if (!Blockly.isPortrait){
+    this.trashcan = new Blockly.Trashcan(this);
+    this.svgTrashcan = this.trashcan.createDom();
+    this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
+    this.trashcanHolder.appendChild(this.svgTrashcan);
+  }
 
   /**
    * @type {!Blockly.Flyout}
@@ -135,8 +136,6 @@ Blockly.Toolbox.prototype.init = function(blockSpace, blockSpaceEditor) {
   // If the document resizes, reposition the toolbox.
   goog.events.listen(window, goog.events.EventType.RESIZE,
                      goog.partial(this.position_, blockSpaceEditor), false, this);
-                     
-  this.addColour_();
   this.position_(blockSpaceEditor);
   this.enabled = true;
 };
@@ -350,20 +349,28 @@ Blockly.Toolbox.TreeControl.prototype.enterDocument = function() {
       'onpointerdown' in window ||
       'onmspointerdown' in window) {
     var el = this.getElement();
-    Blockly.bindEvent_(el, goog.events.EventType.TOUCHSTART, this,
-        this.handleTouchEvent_);
-    Blockly.bindEvent_(el, goog.events.EventType.POINTERDOWN, this,
-        this.handleTouchEvent_);
-    Blockly.bindEvent_(el, goog.events.EventType.MSPOINTERDOWN, this,
-        this.handleTouchEvent_);
+    var handler = this.handleTouchEvent_.bind(this);
+    Blockly.bindEvent_(el, goog.events.EventType.TOUCHSTART, this, handler);
+    Blockly.bindEvent_(el, goog.events.EventType.POINTERDOWN, this, handler);
+    Blockly.bindEvent_(el, goog.events.EventType.MSPOINTERDOWN, this, handler);
   }
 };
+
 /**
  * Handles touch events.
  * @param {!goog.events.BrowserEvent} e The browser event.
  * @private
  */
 Blockly.Toolbox.TreeControl.prototype.handleTouchEvent_ = function(e) {
+  // Rate limit to once every 50ms
+  if (this.touchRateLimited) {
+    return;
+  }
+  this.touchRateLimited = true;
+  setTimeout(function () {
+    this.touchRateLimited = false;
+  }.bind(this));
+
   e.preventDefault();
   var node = this.getNodeFromEvent_(e);
   if (node && (e.type === goog.events.EventType.TOUCHSTART ||
@@ -400,18 +407,10 @@ Blockly.Toolbox.TreeControl.prototype.setSelectedItem = function(node) {
   }
   goog.ui.tree.TreeControl.prototype.setSelectedItem.call(this, node);
   if (node && node.blocks && node.blocks.length) {
-    this.toolbox_.flyout_.show(node.blocks, node.hexColour);
+    this.toolbox_.flyout_.show(node.blocks);
   } else {
     // Hide the flyout.
     this.toolbox_.flyout_.hide();
-  }
-
-  if (node) {
-    if (!this.toolbox_.hasSvg_) {
-      var hexColour = node.hexColour || '#57e';
-      // node.getRowElement().style.backgroundColor = hexColour;
-    }
-    this.toolbox_.addColour_(node, true);
   }
 };
 

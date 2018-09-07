@@ -90,7 +90,7 @@ Blockly.BlockSvgFramed.prototype.renderDraw_ = function(iconWidth, inputRows) {
     // seemed large, so instead I determine it by diffing the locations of the
     // text's top, and the path's top.
     var textHeight = Math.abs(this.frameText_.getBoundingClientRect().top -
-      this.svgPathLight_.getBoundingClientRect().top);
+      this.svgPathDark_.getBoundingClientRect().top);
     this.frameText_.setAttribute('y', -(FRAME_MARGIN_TOP + (FRAME_HEADER_HEIGHT - textHeight) / 2));
   }
 };

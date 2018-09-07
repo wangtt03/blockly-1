@@ -27,234 +27,269 @@ goog.provide('Blockly.Blocks.procedures');
 
 goog.require('Blockly.Blocks');
 
+Blockly.Block.createProcedureDefinitionBlock = function(config) {
+  config = config || {};
+  config.overrides = config.overrides || {};
+  var block = {
+    shouldHideIfInMainBlockSpace: function () {
+      return Blockly.useModalFunctionEditor;
+    },
+    // Define a procedure with no return value.
+    init: function() {
+      var showParamEditIcon = !Blockly.disableParamEditing && !Blockly.useModalFunctionEditor;
 
-Blockly.Blocks.procedures_defnoreturn = {
-  shouldHideIfInMainBlockSpace: function () {
-    return Blockly.useModalFunctionEditor;
-  },
-  // Define a procedure with no return value.
-  init: function() {
-    var showParamEditIcon = !Blockly.disableParamEditing && !Blockly.useModalFunctionEditor;
-
-    this.setHelpUrl(Blockly.Msg.PROCEDURES_DEFNORETURN_HELPURL);
-    this.setHSV(94, 0.84, 0.60);
-    var name = Blockly.Procedures.findLegalName(
-        Blockly.Msg.PROCEDURES_DEFNORETURN_PROCEDURE, this);
-    this.appendDummyInput()
-        .appendTitle(showParamEditIcon ? '' : ' ')
-        .appendTitle(new Blockly.FieldTextInput(name,
-        Blockly.Procedures.rename), 'NAME')
-        .appendTitle('', 'PARAMS');
-    this.appendStatementInput('STACK')
-        .appendTitle(Blockly.Msg.PROCEDURES_DEFNORETURN_DO);
-    if (showParamEditIcon) {
-      this.setMutator(new Blockly.Mutator(['procedures_mutatorarg']));
-    }
-    this.setTooltip(Blockly.Msg.PROCEDURES_DEFNORETURN_TOOLTIP);
-    // Only want to have the backdrop in the mainBlockSpace. We don't want it in
-    // the toolbox or in the feedback dialog (which is readonly).
-    this.setFramed(this.blockSpace === Blockly.mainBlockSpace && !this.blockSpace.isReadOnly());
-    this.parameterNames_ = [];
-  },
-  updateParams_: function() {
-    // Check for duplicated arguments.
-    var badArg = false;
-    var hash = {};
-    for (var x = 0; x < this.parameterNames_.length; x++) {
-      if (hash['arg_' + this.parameterNames_[x].toLowerCase()]) {
-        badArg = true;
-        break;
+      this.setHelpUrl(Blockly.Msg.PROCEDURES_DEFNORETURN_HELPURL);
+      this.setHSV(94, 0.84, 0.60);
+      var name = Blockly.Procedures.findLegalName(
+          Blockly.Msg.PROCEDURES_DEFNORETURN_PROCEDURE, this);
+      this.appendDummyInput()
+          .appendTitle(showParamEditIcon ? '' : ' ')
+          .appendTitle(new Blockly.FieldTextInput(name,
+          Blockly.Procedures.rename), 'NAME')
+          .appendTitle('', 'PARAMS');
+      this.appendStatementInput('STACK')
+          .appendTitle(Blockly.Msg.PROCEDURES_DEFNORETURN_DO);
+      if (showParamEditIcon) {
+        this.setMutator(new Blockly.Mutator(['procedures_mutatorarg']));
       }
-      hash['arg_' + this.parameterNames_[x].toLowerCase()] = true;
-    }
-    if (badArg) {
-      this.setWarningText(Blockly.Msg.PROCEDURES_DEF_DUPLICATE_WARNING);
-    } else {
-      this.setWarningText(null);
-    }
-    // Merge the arguments into a human-readable list.
-    var paramString = '';
-    if (this.parameterNames_.length) {
-      paramString = Blockly.Msg.PROCEDURES_BEFORE_PARAMS +
-          ' ' + this.parameterNames_.join(', ');
-    }
-    this.setTitleValue(paramString, 'PARAMS');
-  },
-  mutationToDom: function() {
-    var container = document.createElement('mutation');
-    // Add argument mutations
-    for (var x = 0; x < this.parameterNames_.length; x++) {
-      var parameter = document.createElement('arg');
-      parameter.setAttribute('name', this.parameterNames_[x]);
-      container.appendChild(parameter);
-    }
-    // Add description mutation
-    if (this.description_) {
-      var desc = document.createElement('description');
-      desc.textContent = this.description_;
-      container.appendChild(desc);
-    }
-    return container;
-  },
-  domToMutation: function(xmlElement) {
-    this.parameterNames_ = [];
-    for (var x = 0, childNode; childNode = xmlElement.childNodes[x]; x++) {
-      var nodeName = childNode.nodeName.toLowerCase();
-      if (nodeName === 'arg') {
-        this.parameterNames_.push(childNode.getAttribute('name'));
-      } else if (nodeName === 'description') {
-        this.description_ = childNode.textContent;
+      this.setTooltip(Blockly.Msg.PROCEDURES_DEFNORETURN_TOOLTIP);
+      // Only want to have the backdrop in the mainBlockSpace. We don't want it in
+      // the toolbox or in the feedback dialog (which is readonly).
+      this.setFramed(this.blockSpace === Blockly.mainBlockSpace && !this.blockSpace.isReadOnly());
+      this.parameterNames_ = [];
+      this.parameterTypes_ = [];
+      if (config.initPostScript) {
+        config.initPostScript(this);
       }
-    }
-    this.updateParams_();
-  },
-  decompose: function(blockSpace) {
-    var containerBlock = new Blockly.Block(blockSpace,
-                                           'procedures_mutatorcontainer');
-    containerBlock.initSvg();
-    var connection = containerBlock.getInput('STACK').connection;
-    for (var x = 0; x < this.parameterNames_.length; x++) {
-      var paramBlock = new Blockly.Block(blockSpace, 'procedures_mutatorarg');
-      paramBlock.initSvg();
-      paramBlock.setTitleValue(this.parameterNames_[x], 'NAME');
-      // Store the old location.
-      paramBlock.oldLocation = x;
-      connection.connect(paramBlock.previousConnection);
-      connection = paramBlock.nextConnection;
-    }
-    // Initialize procedure's callers with blank IDs.
-    Blockly.Procedures.mutateCallers(this.getTitleValue('NAME'),
-        this.blockSpace, this.parameterNames_, null);
-    return containerBlock;
-  },
-  /**
-   * Modifies this block's parameters to match a given mutator block
-   * @param {Blockly.Block} containerBlock mutator container block
-   */
-  compose: function(containerBlock) {
-    var currentParamBlock = containerBlock.getInputTargetBlock('STACK');
-    var paramNames = [];
-    var paramIDs = [];
-    while (currentParamBlock) {
-      paramNames.push(currentParamBlock.getTitleValue('NAME'));
-      paramIDs.push(currentParamBlock.id);
-      currentParamBlock = currentParamBlock.nextConnection &&
-        currentParamBlock.nextConnection.targetBlock();
-    }
-    this.updateParamsFromArrays(paramNames, paramIDs);
-  },
-  /**
-   * Updates parameters (renaming, deleting, adding as appropriate)
-   * on this procedure and its callers.
-   * @param {Array.<String>} paramNames ordered names of parameters for this procedure
-   * @param {Array.<String>} paramIDs unique IDs for each parameter, used to update existing
-   *     references to parameters across renames
-   */
-  updateParamsFromArrays: function(paramNames, paramIDs) {
-    this.parameterNames_ = goog.array.clone(paramNames);
-    this.paramIds_ = paramIDs ? goog.array.clone(paramIDs) : null;
-    this.updateParams_();
-    this.updateCallerParams_();
-  },
-  updateCallerParams_: function() {
-    Blockly.Procedures.mutateCallers(this.getTitleValue('NAME'),
-        this.blockSpace, this.parameterNames_, this.paramIds_);
-  },
-  /**
-   * Disposes of this block and (optionally) its callers
-   * @param {boolean} healStack see superclass
-   * @param {boolean} animate see superclass
-   * @param {?boolean} opt_keepCallers if false, callers of this method
-   *    are disposed
-   * @override
-   */
-  dispose: function(healStack, animate, opt_keepCallers) {
-    if (!opt_keepCallers) {
-      // Dispose of any callers.
-      var name = this.getTitleValue('NAME');
-      Blockly.Procedures.disposeCallers(name, this.blockSpace);
-    }
-    // Call parent's destructor.
-    Blockly.Block.prototype.dispose.apply(this, arguments);
-  },
-  getProcedureInfo: function() {
-    return {
-      name: this.getTitleValue('NAME'),
-      parameterNames: this.parameterNames_,
-      parameterIDs: this.paramIds_,
-      type: this.type,
-      callType: this.callType_
-    };
-  },
-  getVars: function() {
-    return this.parameterNames_;
-  },
-  renameVar: function(oldName, newName) {
-    var change = false;
-    for (var x = 0; x < this.parameterNames_.length; x++) {
-      if (Blockly.Names.equals(oldName, this.parameterNames_[x])) {
-        this.parameterNames_[x] = newName;
-        change = true;
+    },
+    updateParams_: function() {
+      // Check for duplicated arguments.
+      var badArg = false;
+      var hash = {};
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        if (hash['arg_' + this.parameterNames_[x].toLowerCase()]) {
+          badArg = true;
+          break;
+        }
+        hash['arg_' + this.parameterNames_[x].toLowerCase()] = true;
       }
-    }
-    if (change) {
+      if (badArg) {
+        this.setWarningText(Blockly.Msg.PROCEDURES_DEF_DUPLICATE_WARNING);
+      } else {
+        this.setWarningText(null);
+      }
+      // Merge the arguments into a human-readable list.
+      var paramString = '';
+      if (this.parameterNames_.length) {
+        paramString = Blockly.Msg.PROCEDURES_BEFORE_PARAMS +
+            ' ' + this.parameterNames_.join(', ');
+      }
+      this.setTitleValue(paramString, 'PARAMS');
+    },
+    mutationToDom: function() {
+      var container = document.createElement('mutation');
+      // Add argument mutations
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        var parameter = document.createElement('arg');
+        parameter.setAttribute('name', this.parameterNames_[x]);
+        if (this.parameterTypes_ && this.parameterTypes_[x]) {
+          parameter.setAttribute('type', this.parameterTypes_[x]);
+        }
+        container.appendChild(parameter);
+      }
+      // Add description mutation
+      if (this.description_) {
+        var desc = document.createElement('description');
+        desc.textContent = this.description_;
+        container.appendChild(desc);
+      }
+      return container;
+    },
+    domToMutation: function(xmlElement) {
+      this.parameterNames_ = [];
+      for (var x = 0, childNode; childNode = xmlElement.childNodes[x]; x++) {
+        var nodeName = childNode.nodeName.toLowerCase();
+        if (nodeName === 'arg') {
+          this.parameterNames_.push(childNode.getAttribute('name'));
+          var type = childNode.getAttribute('type');
+          if (type) {
+            if (!this.parameterTypes_) {
+              this.parameterTypes_ = [];
+            }
+            this.parameterTypes_[this.parameterNames_.length - 1] = type;
+          }
+        } else if (nodeName === 'description') {
+          this.description_ = childNode.textContent;
+        }
+      }
       this.updateParams_();
-      // Update the mutator's variables if the mutator is open.
-      if (this.mutator && this.mutator.isVisible()) {
-        var blocks = this.mutator.blockSpace_.getAllBlocks();
-        for (var x = 0, block; block = blocks[x]; x++) {
-          if (block.type == 'procedures_mutatorarg' &&
-              Blockly.Names.equals(oldName, block.getTitleValue('NAME'))) {
-            block.setTitleValue(newName, 'NAME');
+    },
+    decompose: function(blockSpace) {
+      var containerBlock = new Blockly.Block(blockSpace,
+                                             'procedures_mutatorcontainer');
+      containerBlock.initSvg();
+      var connection = containerBlock.getInput('STACK').connection;
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        var paramBlock = new Blockly.Block(blockSpace, 'procedures_mutatorarg');
+        paramBlock.initSvg();
+        paramBlock.setTitleValue(this.parameterNames_[x], 'NAME');
+        paramBlock.setTitleValue(this.parameterTypes_[x], 'TYPE');
+        // Store the old location.
+        paramBlock.oldLocation = x;
+        connection.connect(paramBlock.previousConnection);
+        connection = paramBlock.nextConnection;
+      }
+      // Initialize procedure's callers with blank IDs.
+      Blockly.Procedures.mutateCallers(this.getTitleValue('NAME'),
+          this.blockSpace, this.parameterNames_, null);
+      return containerBlock;
+    },
+    /**
+     * Modifies this block's parameters to match a given mutator block
+     * @param {Blockly.Block} containerBlock mutator container block
+     */
+    compose: function(containerBlock) {
+      var currentParamBlock = containerBlock.getInputTargetBlock('STACK');
+      var paramNames = [];
+      var paramTypes = [];
+      var paramIDs = [];
+      while (currentParamBlock) {
+        paramNames.push(currentParamBlock.getTitleValue('NAME'));
+        paramTypes.push(currentParamBlock.getTitleValue('TYPE'));
+        paramIDs.push(currentParamBlock.id);
+        currentParamBlock = currentParamBlock.nextConnection &&
+          currentParamBlock.nextConnection.targetBlock();
+      }
+      this.updateParamsFromArrays(paramNames, paramIDs, paramTypes);
+    },
+    /**
+     * Updates parameters (renaming, deleting, adding as appropriate)
+     * on this procedure and its callers.
+     * @param {Array.<String>} paramNames ordered names of parameters for this procedure
+     * @param {Array.<String>} paramIDs unique IDs for each parameter, used to update existing
+     *     references to parameters across renames
+     * @param {Array.<String>} paramTypes ordered types of parameters for this procedure
+     */
+    updateParamsFromArrays: function(paramNames, paramIDs, paramTypes) {
+      this.parameterNames_ = goog.array.clone(paramNames);
+      this.parameterTypes_ = goog.array.clone(paramTypes);
+      this.paramIds_ = paramIDs ? goog.array.clone(paramIDs) : null;
+      this.updateParams_();
+      this.updateCallerParams_();
+    },
+    updateCallerParams_: function() {
+      Blockly.Procedures.mutateCallers(this.getTitleValue('NAME'),
+        this.blockSpace,
+        this.parameterNames_,
+        this.paramIds_,
+        this.parameterTypes_
+      );
+    },
+    /**
+     * Disposes of this block and (optionally) its callers
+     * @param {boolean} healStack see superclass
+     * @param {boolean} animate see superclass
+     * @param {?boolean} opt_keepCallers if false, callers of this method
+     *    are disposed
+     * @override
+     */
+    dispose: function(healStack, animate, opt_keepCallers) {
+      if (!opt_keepCallers) {
+        // Dispose of any callers.
+        var name = this.getTitleValue('NAME');
+        Blockly.Procedures.disposeCallers(name, this.blockSpace);
+      }
+      // Call parent's destructor.
+      Blockly.Block.prototype.dispose.apply(this, arguments);
+    },
+    getProcedureInfo: function() {
+      return {
+        name: this.getTitleValue('NAME'),
+        parameterNames: this.parameterNames_,
+        parameterIDs: this.paramIds_,
+        parameterTypes: this.parameterTypes_,
+        type: this.type,
+        callType: this.callType_
+      };
+    },
+    getVars: function() {
+      return {
+        Default: this.parameterNames_,
+      };
+    },
+    renameVar: function(oldName, newName) {
+      var change = false;
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        if (Blockly.Names.equals(oldName, this.parameterNames_[x])) {
+          this.parameterNames_[x] = newName;
+          change = true;
+        }
+      }
+      if (change) {
+        this.updateParams_();
+        // Update the mutator's variables if the mutator is open.
+        if (this.mutator && this.mutator.isVisible()) {
+          var blocks = this.mutator.blockSpace_.getAllBlocks();
+          for (var x = 0, block; block = blocks[x]; x++) {
+            if (block.type == 'procedures_mutatorarg' &&
+                Blockly.Names.equals(oldName, block.getTitleValue('NAME'))) {
+              block.setTitleValue(newName, 'NAME');
+            }
           }
         }
       }
-    }
-  },
-  removeVar: function(oldName) {
-    var index = this.parameterNames_.indexOf(oldName);
-    if (index > -1) {
-      this.parameterNames_.splice(index, 1);
-      this.updateParams_();
-    }
-  },
-  customContextMenu: function(options) {
-    // Add option to create caller.
-    var option = {enabled: true};
-    var name = this.getTitleValue('NAME');
-    option.text = Blockly.Msg.PROCEDURES_CREATE_DO.replace('%1', name);
-
-    var xmlMutation = goog.dom.createDom('mutation');
-    xmlMutation.setAttribute('name', name);
-    for (var x = 0; x < this.parameterNames_.length; x++) {
-      var xmlArg = goog.dom.createDom('arg');
-      xmlArg.setAttribute('name', this.parameterNames_[x]);
-      xmlMutation.appendChild(xmlArg);
-    }
-    var xmlBlock = goog.dom.createDom('block', null, xmlMutation);
-    xmlBlock.setAttribute('type', this.callType_);
-    option.callback = Blockly.ContextMenu.callbackFactory(this, xmlBlock);
-
-    options.push(option);
-    // Add options to create getters for each parameter.
-    for (var x = 0; x < this.parameterNames_.length; x++) {
+    },
+    removeVar: function(oldName) {
+      var index = this.parameterNames_.indexOf(oldName);
+      if (index > -1) {
+        this.parameterNames_.splice(index, 1);
+        if (this.parameterTypes_) {
+          this.parameterTypes_.splice(index, 1);
+        }
+        this.updateParams_();
+      }
+    },
+    customContextMenu: function(options) {
+      // Add option to create caller.
       var option = {enabled: true};
-      var name = this.parameterNames_[x];
-      option.text = Blockly.Msg.VARIABLES_SET_CREATE_GET.replace('%1', name);
-      var xmlTitle = goog.dom.createDom('title', null, name);
-      xmlTitle.setAttribute('name', 'VAR');
-      var xmlBlock = goog.dom.createDom('block', null, xmlTitle);
-      xmlBlock.setAttribute('type', 'variables_get');
+      var name = this.getTitleValue('NAME');
+      option.text = Blockly.Msg.PROCEDURES_CREATE_DO.replace('%1', name);
+
+      var xmlMutation = goog.dom.createDom('mutation');
+      xmlMutation.setAttribute('name', name);
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        var xmlArg = goog.dom.createDom('arg');
+        xmlArg.setAttribute('name', this.parameterNames_[x]);
+        xmlMutation.appendChild(xmlArg);
+      }
+      var xmlBlock = goog.dom.createDom('block', null, xmlMutation);
+      xmlBlock.setAttribute('type', this.callType_);
       option.callback = Blockly.ContextMenu.callbackFactory(this, xmlBlock);
+
       options.push(option);
-    }
-  },
-  userCreated: false,
-  shouldBeGrayedOut: function () {
-    return false;
-  },
-  callType_: 'procedures_callnoreturn'
-};
+      // Add options to create getters for each parameter.
+      for (var x = 0; x < this.parameterNames_.length; x++) {
+        var option = {enabled: true};
+        var name = this.parameterNames_[x];
+        option.text = Blockly.Msg.VARIABLES_SET_CREATE_GET.replace('%1', name);
+        var xmlTitle = goog.dom.createDom('title', null, name);
+        xmlTitle.setAttribute('name', 'VAR');
+        var xmlBlock = goog.dom.createDom('block', null, xmlTitle);
+        xmlBlock.setAttribute('type', 'variables_get');
+        option.callback = Blockly.ContextMenu.callbackFactory(this, xmlBlock);
+        options.push(option);
+      }
+    },
+    userCreated: false,
+    shouldBeGrayedOut: function () {
+      return false;
+    },
+    callType_: 'procedures_callnoreturn'
+  };
+  goog.object.extend(block, config.overrides);
+  return block;
+}
+Blockly.Blocks.procedures_defnoreturn = Blockly.Block.createProcedureDefinitionBlock();
 
 Blockly.Blocks.procedures_defreturn = {
   shouldHideIfInMainBlockSpace: function () {
@@ -327,6 +362,17 @@ Blockly.Blocks.procedures_mutatorarg = {
     this.appendDummyInput()
         .appendTitle(Blockly.Msg.PROCEDURES_MUTATORARG_TITLE)
         .appendTitle(new Blockly.FieldTextInput('x', this.validator), 'NAME');
+    if (Blockly.valueTypeTabShapeMap) {
+      var typeOptions = function () {
+        return goog.object.getValues(Blockly.BlockValueType).map(function (v) {
+          return [v, v];
+        });
+      };
+      this.appendDummyInput()
+        .appendTitle(Blockly.Msg.PROCEDURES_MUTATORARG_TYPE)
+        .appendTitle(new Blockly.FieldDropdown(typeOptions), 'TYPE');
+      this.setInputsInline(true);
+    }
     this.setPreviousStatement(true);
     this.setNextStatement(true);
     this.setTooltip('');
@@ -381,7 +427,7 @@ Blockly.Blocks.procedures_callnoreturn = {
           .replace('%1', newName));
     }
   },
-  setProcedureParameters: function(paramNames, paramIds) {
+  setProcedureParameters: function(paramNames, paramIds, paramTypes) {
     // Data structures for parameters on each call block:
     // this.arguments = ['x', 'y']
     //     Existing param names.
@@ -432,6 +478,7 @@ Blockly.Blocks.procedures_callnoreturn = {
     // Rebuild the block's arguments.
     this.currentParameterNames_ = [].concat(paramNames);
     this.currentParameterIDs = paramIds;
+    this.currentParameterTypes_ = paramTypes;
     for (var x = 0; x < this.currentParameterNames_.length; x++) {
       var input = this.appendValueInput('ARG' + x)
           .setAlign(Blockly.ALIGN_RIGHT)
@@ -450,11 +497,13 @@ Blockly.Blocks.procedures_callnoreturn = {
           }
         }
       }
+      input.setStrictCheck(this.currentParameterTypes_[x]);
     }
     // Restore rendering and show the changes.
     this.rendered = savedRendered;
     if (this.rendered) {
       this.render();
+      this.bumpNeighbours();
     }
   },
   mutationToDom: function() {
@@ -464,6 +513,9 @@ Blockly.Blocks.procedures_callnoreturn = {
     for (var x = 0; x < this.currentParameterNames_.length; x++) {
       var parameter = document.createElement('arg');
       parameter.setAttribute('name', this.currentParameterNames_[x]);
+      if (this.currentParameterTypes_[x]) {
+        parameter.setAttribute('type', this.currentParameterTypes_[x]);
+      }
       container.appendChild(parameter);
     }
     return container;
@@ -479,16 +531,18 @@ Blockly.Blocks.procedures_callnoreturn = {
     if (definitionBlock && definitionBlock.mutator && definitionBlock.mutator.isVisible()) {
       // Initialize caller with the mutator's IDs.
       var procedureInfo = definitionBlock.getProcedureInfo();
-      this.setProcedureParameters(procedureInfo.parameterNames, procedureInfo.parameterIDs);
+      this.setProcedureParameters(procedureInfo.parameterNames, procedureInfo.parameterIDs, procedureInfo.parameterTypes);
     } else {
       this.currentParameterNames_ = [];
+      this.currentParameterTypes_ = [];
       for (var x = 0, childNode; childNode = xmlElement.childNodes[x]; x++) {
         if (childNode.nodeName.toLowerCase() == 'arg') {
           this.currentParameterNames_.push(childNode.getAttribute('name'));
+          this.currentParameterTypes_.push(childNode.getAttribute('type'));
         }
       }
       // Use parameter names as dummy IDs during initialization
-      this.setProcedureParameters(this.currentParameterNames_, this.currentParameterNames_);
+      this.setProcedureParameters(this.currentParameterNames_, this.currentParameterNames_, this.currentParameterTypes_);
     }
   },
   renameVar: function(oldName, newName) {

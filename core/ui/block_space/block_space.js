@@ -185,6 +185,10 @@ Blockly.BlockSpace.SCROLLABLE_MARGIN_BELOW_BOTTOM = 100;
  * @param {Object} opt_options optional options
  * @param {boolean} opt_options.noScrolling whether or not to disable
  *        scrolling
+ * @param {boolean} opt_options.inline whether or not this blockspace should be
+ *        treated as an inline element, as opposed to a block element
+ * @param {boolean} opt_options.disableEventBindings whether or not to skip
+ *        setting up dom event handlers for this blockspace
  * @returns {Blockly.BlockSpace}
  */
 Blockly.BlockSpace.createReadOnlyBlockSpace = function (container, xml, opt_options) {
@@ -206,7 +210,9 @@ Blockly.BlockSpace.createReadOnlyBlockSpace = function (container, xml, opt_opti
     hideTrashRect: true,
     readOnly: true,
     disableTooltip: true,
-    noScrolling: opt_options.noScrolling
+    noScrolling: opt_options.noScrolling,
+    inline: opt_options.inline,
+    disableEventBindings: opt_options.disableEventBindings,
   });
 
   var blockSpace = blockSpaceEditor.blockSpace;
@@ -278,6 +284,10 @@ Blockly.BlockSpace.prototype.isReadOnly = function() {
   return (Blockly.readOnly || this.blockSpaceEditor.isReadOnly());
 };
 
+Blockly.BlockSpace.prototype.isMovementLocked = function() {
+  return this.blockSpaceEditor.isMovementLocked();
+};
+
 /**
  * Sets up debug console logging for events
  */
@@ -340,6 +350,22 @@ Blockly.BlockSpace.prototype.createDom = function() {
     }, document.body);
   }
   this.svgDragCanvas_ = Blockly.createSvgElement('g', {'class': 'svgDragCanvas'}, Blockly.dragSvg);
+
+  Blockly.bindEvent_(this.svgBlockCanvas_, Blockly.BlockSpace.EVENTS.RUN_BUTTON_CLICKED, this, function () {
+    this.getTopBlocks().forEach(function (block) {
+      if (block.isUnused()) {
+        block.getSvgRenderer().addUnusedFrame();
+      }
+    });
+  });
+  
+  if (Blockly.isPortrait){
+    this.trashcan = new Blockly.Trashcan(this);
+    this.svgTrashcan_ = this.trashcan.createDom();
+    this.svgTrashcan_.setAttribute("style", "display: none; pointer-events: none");
+    // this.svgTrashcan_.setAttribute("transform", "translate("+0+", 20)");
+    this.svgGroup_.appendChild(this.svgTrashcan_);
+  }
 
   this.fireChangeEvent();
   return this.svgGroup_;
@@ -440,6 +466,10 @@ Blockly.BlockSpace.prototype.getDragCanvas = function () {
  */
 Blockly.BlockSpace.prototype.getBubbleCanvas = function() {
   return this.svgBubbleCanvas_;
+};
+
+Blockly.BlockSpace.prototype.getTrashCan = function() {
+  return this.svgTrashcan_;
 };
 
 /**
@@ -692,67 +722,25 @@ Blockly.BlockSpace.prototype.fireChangeEvent = function() {
 
 /**
  * Paste the provided block onto the blockSpace.
- * @param {!Element} xmlBlock XML block element.
+ * @param {!Element} xml XML blocks.
  */
-Blockly.BlockSpace.prototype.paste = function(clipboard) {
-  var xmlBlock = clipboard.dom;
-  // When pasting into a different block spaces, remove parameter blocks
-  if (this !== clipboard.sourceBlockSpace) {
-    if (xmlBlock.getAttribute('type') === 'parameters_get') {
-      return;
-    }
-    goog.array.forEach(xmlBlock.getElementsByTagName('block'), function(block) {
-      if (block.getAttribute('type') === 'parameters_get') {
-        goog.dom.removeNode(block);
-      }
+Blockly.BlockSpace.prototype.paste = function(xml) {
+  // When pasting into the main block space, remove parameter blocks
+  if (this === Blockly.mainBlockSpace) {
+    goog.array.forEach(xml.querySelectorAll('block[type=parameters_get]'), function(block) {
+      goog.dom.removeNode(block);
     });
   }
-  if (xmlBlock.getElementsByTagName('block').length >=
+  if (xml.getElementsByTagName('block').length >=
       this.remainingCapacity()) {
     return;
   }
-  if (this.blockSpaceEditor.blockLimits.hasBlockLimits()) {
-    var types = goog.array.map(xmlBlock.getElementsByTagName('block'), function(block) {
-      return block.getAttribute('type');
-    });
-    types.push(xmlBlock.getAttribute('type'));
+  var blocks = Blockly.Xml.domToBlockSpace(this, xml);
 
-    if (!this.blockSpaceEditor.blockLimits.canAddBlocks(types)) {
-      return;
-    }
-  }
-  var block = Blockly.Xml.domToBlock(this, xmlBlock);
-  // Move the duplicate to original position.
-  var blockX = parseInt(xmlBlock.getAttribute('x'), 10);
-  var blockY = parseInt(xmlBlock.getAttribute('y'), 10);
-  if (!isNaN(blockX) && !isNaN(blockY)) {
-    if (Blockly.RTL) {
-      blockX = -blockX;
-    }
-    // Offset block until not clobbering another block.
-    var collide;
-    do {
-      collide = false;
-      var allBlocks = this.getAllBlocks();
-      for (var x = 0, otherBlock; x < allBlocks.length; x++) {
-        otherBlock = allBlocks[x];
-        var otherXY = otherBlock.getRelativeToSurfaceXY();
-        if (Math.abs(blockX - otherXY.x) <= 1 &&
-            Math.abs(blockY - otherXY.y) <= 1) {
-          if (Blockly.RTL) {
-            blockX -= Blockly.SNAP_RADIUS;
-          } else {
-            blockX += Blockly.SNAP_RADIUS;
-          }
-          blockY += Blockly.SNAP_RADIUS * 2;
-          collide = true;
-        }
-      }
-    } while (collide);
-    block.moveBy(blockX, blockY);
-  }
-  block.setUserVisible(true);
-  block.select();
+  blocks.forEach(function(b) {
+    b.blockly_block.bumpNeighbours();
+  });
+  blocks[0].blockly_block.select();
 };
 
 /**
@@ -793,11 +781,11 @@ Blockly.BlockSpace.prototype.recordDeleteAreas = function() {
     this.deleteAreaTrash_ = null;
   }
 
-  if (this.flyout_) {
+  if (!Blockly.isPortrait && this.flyout_) {
     goog.array.extend(this.deleteAreas_, this.flyout_.getRect());
   }
 
-  if (this.blockSpaceEditor) {
+  if (!Blockly.isPortrait && this.blockSpaceEditor) {
     goog.array.extend(this.deleteAreas_,
         this.blockSpaceEditor.getDeleteAreas());
   }
@@ -809,9 +797,10 @@ Blockly.BlockSpace.prototype.recordDeleteAreas = function() {
 * @param {number} mouseX mouse clientX
 * @param {number} mouseY mouse clientY
 * @param {number} startDragX The x coordinate of the drag start.
+* @param {boolean} undeletable
 * @return {boolean} True if event is in a delete area.
 */
-Blockly.BlockSpace.prototype.isDeleteArea = function(mouseX, mouseY, startDragX) {
+Blockly.BlockSpace.prototype.isDeleteArea = function(mouseX, mouseY, startDragX, undeletable) {
   // If there is no toolbox and no flyout then there is no trash area.
   if (!Blockly.languageTree) {
     return false;
@@ -836,7 +825,7 @@ Blockly.BlockSpace.prototype.isDeleteArea = function(mouseX, mouseY, startDragX)
     }
   }
 
-  this.drawTrashZone(xy.x, dragStartXY.x);
+  this.drawTrashZone(xy.x, dragStartXY.x, undeletable);
 
   // Check against all delete areas
   for (var i = 0, area; i < this.deleteAreas_.length; i++) {
@@ -866,7 +855,11 @@ Blockly.BlockSpace.prototype.hideDelete = function() {
 * @param {integer} startDragX The x coordinate of the drag start.
 * @return {boolean} True if event is in a delete area.
 */
-Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX) {
+Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX, undeletable) {
+  if (Blockly.isPortrait) {
+    return;
+  }
+
   var background;
   var blockGroup;
   var trashcan;
@@ -938,10 +931,18 @@ Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX) {
   var INNER_TRASH_NORMAL_INTENSITY = 0.8;
   var INNER_TRASH_TRASHCAN_INTENSITY = 1 - INNER_TRASH_NORMAL_INTENSITY;
 
+  if (undeletable) {
+    trashcan.setDisabled(true);
+  } else {
+    trashcan.setDisabled(false);
+  }
+
   if (pastThreshold) {
     if (xDifference <= 0) {
       normalIntensity = 0;
-      trashcan.setOpen_(true);
+      if (!undeletable) {
+        trashcan.setOpen_(true);
+      }
     } else {
       trashcan.setOpen_(false);
       if (xDifference >= trashZoneWidth) {

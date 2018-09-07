@@ -46,6 +46,7 @@ Blockly.BlockSvg = function(block) {
 
   this.block_ = block;
   var options = {
+    "tabindex": 0,
     "block-id": block.id
   };
   if (block.htmlId) {
@@ -64,6 +65,16 @@ Blockly.BlockSvg = function(block) {
 };
 
 Blockly.BlockSvg.prototype.initChildren = function () {
+  if (Blockly.typeHints) {
+    this.svgTypeHints_ = Blockly.createSvgElement('g', {
+      'class': 'blocklyTypeHint'
+    }, this.svgGroup_);
+    for (var i = 0; i < this.block_.inputList.length; i++) {
+      Blockly.createSvgElement('path', {
+        'filter': 'url(#blocklyTypeHintFilter)'
+      }, this.svgTypeHints_);
+    }
+  }
   // this.svgPathDark_ = Blockly.createSvgElement('path', {
   //   'class': 'blocklyPathDark',
   //   'transform': 'translate(1, 1)',
@@ -225,6 +236,14 @@ BS.TAB_PATH_DOWN = 'v 5 c 0,10 -' + BS.TAB_WIDTH +
     ',-8 -' + BS.TAB_WIDTH + ',7.5 s ' +
     BS.TAB_WIDTH + ',-2.5 ' + BS.TAB_WIDTH + ',7.5';
 /**
+ * SVG path for drawing a short highlight glint at the bottom of a tab
+ * @const
+ */
+BS.TAB_PATH_DOWN_HIGHLIGHT =
+  'm -4.2,' + (BS.TAB_HEIGHT - 0.4) + ' ' +
+  'l ' + (BS.TAB_WIDTH * 0.42) + ',-1.8';
+
+/**
  * SVG path for drawing a horizontal puzzle tab from top to bottom with
  * highlighting from the upper-right.
  * @const
@@ -234,6 +253,191 @@ BS.TAB_PATH_DOWN_HIGHLIGHT_RTL = 'v 6.5 m -' +
     (BS.TAB_WIDTH * .05) + ',10 ' +
     (BS.TAB_WIDTH * .27) + ',10 m ' +
     (BS.TAB_WIDTH * .71) + ',-2.5 v 1.5';
+
+/**
+ * SVG paths for drawing a horizontal puzzle tab from bottom to top.
+ * @const
+ */
+BS.TAB_PATH_UP =
+  'V ' + BS.TAB_HEIGHT +
+  'c 0,-10 ' +
+    '-' + BS.TAB_WIDTH + ',8 ' +
+    '-' + BS.TAB_WIDTH + ',-7.5 ' +
+  's ' + BS.TAB_WIDTH + ',2.5 ' +
+    BS.TAB_WIDTH + ',-7.5';
+
+BS.TAB_PATH_UP_HIGHLIGHT =
+  'V ' + (BS.TAB_HEIGHT - 1) + ' ' +
+  'm ' + (BS.TAB_WIDTH * -0.92) + ',-1 ' +
+  'q ' + (BS.TAB_WIDTH * -0.19) + ',-5.5 0,-11 ' +
+  'm ' + (BS.TAB_WIDTH * 0.92) + ',1 ' +
+  'V 1 ' +
+  'H 2';
+
+BS.TAB_PATH_UP_HIGHLIGHT_RTL =
+  'M ' + (BS.TAB_WIDTH * -0.3) + ',8.9 ' +
+  'l ' + (BS.TAB_WIDTH * -0.45) + ',-2.1';
+
+/**
+ * SVG paths for drawing a horizontal angle tab from top to bottom
+ * @const
+ */
+BS.ANGLE_TAB_PATH_DOWN =
+  'v ' + (BS.TAB_HEIGHT / 3) + ' ' +
+  'l ' + (BS.TAB_WIDTH * -1) + ' ' + (BS.TAB_HEIGHT / 3) + ' ' +
+  'l ' + (BS.TAB_WIDTH) + ' ' + (BS.TAB_HEIGHT / 3);
+
+BS.ANGLE_TAB_PATH_DOWN_HIGHLIGHT_RTL =
+  'v 5.5 ' +
+  'm -' + (BS.TAB_WIDTH - 1) + ',' + (BS.TAB_HEIGHT / 3 + 1) + ' ' +
+  'l ' + (BS.TAB_WIDTH - 1) + ',' + (BS.TAB_HEIGHT / 3);
+
+/**
+ * SVG paths for drawing a horizontal angle tab from bottom to top
+ * @const
+ */
+BS.ANGLE_TAB_PATH_UP =
+  'V' + BS.TAB_HEIGHT + ' ' +
+  'L' + (BS.TAB_WIDTH * -1) +', ' + (BS.TAB_HEIGHT * 0.66) + ' ' +
+  'L' + 0 + ', ' + (BS.TAB_HEIGHT * 0.33);
+
+BS.ANGLE_TAB_PATH_UP_HIGHLIGHT =
+  'V ' + (BS.TAB_HEIGHT + 2) + ' ' +
+  'M ' + ((BS.TAB_WIDTH * -1) + 1) + ', ' + (BS.TAB_HEIGHT * 0.66) + ' ' +
+  'L ' + '1, ' + (BS.TAB_HEIGHT * 0.33 + 1) + ' ' +
+  'V ' + 1;
+
+/**
+ * SVG paths for drawing a horizontal square tab from top to bottom
+ * @const
+ */
+BS.SQUARE_TAB_PATH_DOWN =
+  'v 7 ' +
+  'h ' + (BS.TAB_WIDTH * -1) + ' ' +
+  'v 11 ' +
+  'h ' + BS.TAB_WIDTH + ' ' +
+  'v 2';
+
+BS.SQUARE_TAB_PATH_DOWN_HIGHLIGHT =
+  'm 0 18.5 ' +
+  'h ' + (BS.TAB_WIDTH * -0.85);
+
+BS.SQUARE_TAB_PATH_DOWN_HIGHLIGHT_RTL =
+  'v 6 ' +
+  'm ' + (BS.TAB_WIDTH * -1) + ' 1 ' +
+  'v 11 ' +
+  'h ' + BS.TAB_WIDTH + ' ' +
+  'v 2';
+
+/**
+ * SVG paths for drawing a horizontal square tab from bottom to top
+ * @const
+ */
+BS.SQUARE_TAB_PATH_UP =
+  'V 17 ' +
+  'h ' + (BS.TAB_WIDTH * -1) + ' ' +
+  'v -10 ' +
+  'h ' + BS.TAB_WIDTH;
+
+BS.SQUARE_TAB_PATH_UP_HIGHLIGHT =
+  'V 18 ' +
+  'm ' + (BS.TAB_WIDTH * -1) + ' -1.5 ' +
+  'v -9 ' +
+  'h ' + BS.TAB_WIDTH + ' ' +
+  'v -6.5';
+
+BS.SQUARE_TAB_PATH_UP_HIGHLIGHT_RTL =
+  'M -1.5 7.5 ' +
+  'h ' + (BS.TAB_WIDTH * -0.8);
+
+/**
+ * SVG paths for drawing a horizontal square tab from top to bottom
+ * @const
+ */
+BS.ROUNDED_TAB_PATH_DOWN =
+  'v 5.5 ' +
+  'c ' + (BS.TAB_WIDTH * -0.5) + ' 0, ' + (BS.TAB_WIDTH * -1) + ' 2, ' + (BS.TAB_WIDTH * -1) + ' 7 ' +
+  'c 0 5, ' + (BS.TAB_WIDTH * 0.5) + ' 7, ' + BS.TAB_WIDTH + ' 7 ' +
+  'v 0.5';
+
+BS.ROUNDED_TAB_PATH_DOWN_HIGHLIGHT =
+  'm 0 20 ' +
+  'c -2 0, -4 -0.5, -4 -0.5';
+
+BS.ROUNDED_TAB_PATH_DOWN_HIGHLIGHT_RTL =
+  'v 4.5 ' +
+  'm -6 2.5 ' +
+  'c -2 0, -2 5, -2 5.5 ' +
+  'c 0 5, ' + (BS.TAB_WIDTH * 0.5) + ' 7, ' + BS.TAB_WIDTH + ' 7 ' +
+  'v 1';
+
+/**
+ * SVG paths for drawing a horizontal square tab from bottom to top
+ * @const
+ */
+BS.ROUNDED_TAB_PATH_UP =
+  'V 19 ' +
+  'c ' + (BS.TAB_WIDTH * -0.5) + ' 0, ' + (BS.TAB_WIDTH * -1) + ' 0, ' + (BS.TAB_WIDTH * -1) + ' -6 ' +
+  'c 0 -6, ' + (BS.TAB_WIDTH * 0.5) + ' -6, ' + BS.TAB_WIDTH + ' -6 ';
+
+BS.ROUNDED_TAB_PATH_UP_HIGHLIGHT =
+  'V 19.5 ' +
+  'm -6 -2 ' +
+  'c -1 -1, -2 -2, -2 -4.5 ' +
+  'c 0 -6, ' + (BS.TAB_WIDTH * 0.5) + ' -6, ' + BS.TAB_WIDTH + ' -6 ' +
+  'v -6';
+
+BS.ROUNDED_TAB_PATH_UP_HIGHLIGHT_RTL =
+  'M -0.5 7.5 ' +
+  'c -2 0, -4 0.5, -4 0.5';
+
+/**
+ * Map of connection tab shapes to the corresponding set of svg paths
+ * TAB_PATH_DOWN and TAB_PATH_DOWN_HIGHLIGHT_RTL should have a height of
+ *   BS.TAB_HEIGHT (20px), and will be started from top of the row
+ * TAB_PATH_DOWN_HIGHLIGHT starts at the top of the row, but can end anywhere
+ *
+ * TAB_PATH_UP starts from BS.TAB_HEIGHT pixels below the top of the row, and
+ *   will be followed by a 'Z' path element to draw a straight line to the top
+ *   left of the block
+ * TAB_PATH_UP_HIGHLIGHT and TAB_PATH_UP_HIGHLIGHT_RTL start from the bottom
+ *   of the row, and can end anywhere
+ * @const
+ */
+BS.TAB_PATHS_BY_SHAPE = {
+  standard: {
+    TAB_PATH_DOWN: BS.TAB_PATH_DOWN,
+    TAB_PATH_DOWN_HIGHLIGHT: BS.TAB_PATH_DOWN_HIGHLIGHT,
+    TAB_PATH_DOWN_HIGHLIGHT_RTL: BS.TAB_PATH_DOWN_HIGHLIGHT_RTL,
+    TAB_PATH_UP: BS.TAB_PATH_UP,
+    TAB_PATH_UP_HIGHLIGHT: BS.TAB_PATH_UP_HIGHLIGHT,
+    TAB_PATH_UP_HIGHLIGHT_RTL: BS.TAB_PATH_UP_HIGHLIGHT_RTL,
+  },
+  angle: {
+    TAB_PATH_DOWN: BS.ANGLE_TAB_PATH_DOWN,
+    TAB_PATH_DOWN_HIGHLIGHT: '',
+    TAB_PATH_DOWN_HIGHLIGHT_RTL: BS.ANGLE_TAB_PATH_DOWN_HIGHLIGHT_RTL,
+    TAB_PATH_UP: BS.ANGLE_TAB_PATH_UP,
+    TAB_PATH_UP_HIGHLIGHT: BS.ANGLE_TAB_PATH_UP_HIGHLIGHT,
+    TAB_PATH_UP_HIGHLIGHT_RTL: '',
+  },
+  square: {
+    TAB_PATH_DOWN: BS.SQUARE_TAB_PATH_DOWN,
+    TAB_PATH_DOWN_HIGHLIGHT: BS.SQUARE_TAB_PATH_DOWN_HIGHLIGHT,
+    TAB_PATH_DOWN_HIGHLIGHT_RTL: BS.SQUARE_TAB_PATH_DOWN_HIGHLIGHT_RTL,
+    TAB_PATH_UP: BS.SQUARE_TAB_PATH_UP,
+    TAB_PATH_UP_HIGHLIGHT: BS.SQUARE_TAB_PATH_UP_HIGHLIGHT,
+    TAB_PATH_UP_HIGHLIGHT_RTL: BS.SQUARE_TAB_PATH_UP_HIGHLIGHT_RTL,
+  },
+  rounded: {
+    TAB_PATH_DOWN: BS.ROUNDED_TAB_PATH_DOWN,
+    TAB_PATH_DOWN_HIGHLIGHT: BS.ROUNDED_TAB_PATH_DOWN_HIGHLIGHT,
+    TAB_PATH_DOWN_HIGHLIGHT_RTL: BS.ROUNDED_TAB_PATH_DOWN_HIGHLIGHT_RTL,
+    TAB_PATH_UP: BS.ROUNDED_TAB_PATH_UP,
+    TAB_PATH_UP_HIGHLIGHT: BS.ROUNDED_TAB_PATH_UP_HIGHLIGHT,
+    TAB_PATH_UP_HIGHLIGHT_RTL: BS.ROUNDED_TAB_PATH_UP_HIGHLIGHT_RTL,
+  }
+};
 
 /**
  * SVG start point for drawing the top-left corner.
@@ -318,7 +522,7 @@ BS.INNER_BOTTOM_LEFT_CORNER_HIGHLIGHT_LTR =
  * @return {Object} object with padding values for top, bottom, left, and right
  */
 Blockly.BlockSvg.prototype.getPadding = function() {
-  if (this.isUnused()) {
+  if (this.unusedSvg_) {
     return this.unusedSvg_.getPadding();
   }
   return {
@@ -354,12 +558,12 @@ Blockly.BlockSvg.prototype.dispose = function() {
   // Sever JavaScript to DOM connections.
   this.svgGroup_ = null;
   this.svgPath_ = null;
+  this.svgPathFill_ = null;
+  this.svgTypeHints_ = null;
   this.svgPathLight_ = null;
   // this.svgPathDark_ = null;
   // dispose of children
-  if (this.isUnused()) {
-    this.unusedSvg_.dispose();
-  }
+  this.removeUnusedFrame();
   // Break circular references.
   this.block_ = null;
 };
@@ -551,15 +755,14 @@ Blockly.BlockSvg.prototype.updateLimit = function (limit) {
     }, this.limitGroup_);
   }
 
-  if (limit === 0) {
-    Blockly.addClass_(this.svgGroup_, 'blocklyUnused');
-    Blockly.removeClass_(this.svgGroup_, 'blocklyDraggable');
+  if (limit < 0) {
+    this.limitText_.textContent = '!';
+    Blockly.addClass_(this.limitGroup_, 'overLimit');
   } else {
-    Blockly.removeClass_(this.svgGroup_, 'blocklyUnused');
-    Blockly.addClass_(this.svgGroup_, 'blocklyDraggable');
+    this.limitText_.textContent = limit;
+    Blockly.removeClass_(this.limitGroup_, 'overLimit');
   }
 
-  this.limitText_.textContent = limit;
   var textWidth = this.limitText_.getBBox ? Math.ceil(this.limitText_.getBBox().width) : HALF_BUBBLE_SIZE;
   var rectWidth = Math.max(textWidth + HALF_BUBBLE_SIZE, BUBBLE_SIZE);
   this.limitRect_.setAttribute('width', rectWidth);
@@ -575,12 +778,14 @@ Blockly.BlockSvg.prototype.updateLimit = function (limit) {
 };
 
 /**
- * Select this block.  Highlight it visually.  Move to top of the stack.
+ * Select this block.  Highlight it visually.
+ * @param {boolean} moveToTop Move the selected block to the top of the stack.
  */
-Blockly.BlockSvg.prototype.addSelect = function() {
+Blockly.BlockSvg.prototype.addSelect = function(moveToTop) {
   Blockly.addClass_(this.svgGroup_, 'blocklySelected');
-  // Move the selected block to the top of the stack.
-  this.svgGroup_.parentNode.appendChild(this.svgGroup_);
+  if (moveToTop) {
+    this.svgGroup_.parentNode.appendChild(this.svgGroup_);
+  }
 };
 
 /**
@@ -664,9 +869,7 @@ Blockly.BlockSvg.prototype.render = function(selfOnly) {
     }
   }
 
-  if (this.isUnused()) {
-    this.unusedSvg_.render(this.svgGroup_);
-  }
+  this.removeUnusedFrame();
 };
 
 /**
@@ -968,8 +1171,33 @@ Blockly.BlockSvg.prototype.renderDraw_ = function(iconWidth, inputRows) {
   if (this.svgPathFill_) {
     this.svgPathFill_.setAttribute('d', pathString);
   }
-  // this.svgPathDark_.setAttribute('d', pathString);
-  // pathString = renderInfo.highlight.join(' ') + '\n' + renderInfo.highlightInline.join(' ');
+  if (this.svgTypeHints_) {
+    var g = this.svgTypeHints_;
+    var max = Math.max(this.block_.inputList.length, g.childNodes.length);
+    for (var j = 0; j < max; j++) {
+      var element = g.childNodes[j] || Blockly.createSvgElement('path', {
+        'filter': 'url(#blocklyTypeHintFilter)'
+      }, g);
+      var input = this.block_.inputList[j];
+      if (!input || !input.connection) {
+        element.setAttribute('d', '');
+        continue;
+      }
+
+      var pathInfo = input.connection.getPathInfo();
+      if (pathInfo && pathInfo.color) {
+        element.setAttribute('d', pathInfo.steps);
+        element.setAttribute('transform',
+          pathInfo.transform);
+        element.setAttribute('stroke',
+          Blockly.makeColour.apply(null, pathInfo.color));
+      } else {
+        element.setAttribute('d', '');
+      }
+    }
+  }
+  //this.svgPathDark_.setAttribute('d', pathString);
+  //pathString = renderInfo.highlight.join(' ') + '\n' + renderInfo.highlightInline.join(' ');
   this.svgPathLight_.setAttribute('d', pathString);
   if (Blockly.RTL) {
     // Mirror the block's path.
@@ -980,7 +1208,8 @@ Blockly.BlockSvg.prototype.renderDraw_ = function(iconWidth, inputRows) {
 };
 
 /**
- * Render the top edge of the block.
+ * Render the top edge of the block. Side effect: moves connections to their
+ *     new locations.
  * @param {!Object} renderInfo Current state of our paths
  * @param {number} rightEdge Minimum width of block.
  * @param {!Object} connectionsXY Location of block.
@@ -1025,7 +1254,8 @@ Blockly.BlockSvg.prototype.renderDrawTop_ = function(renderInfo, rightEdge,
 };
 
 /**
- * Render the right edge of the block.
+ * Render the right edge of the block. Side effect: moves connections to their
+ *     new locations.
  * @param {!Object} renderInfo Current state of our paths
  * @param {!Object} connectionsXY Location of block.
  * @param {!Array.<!Array.<!Object>>} inputRows 2D array of objects, each
@@ -1441,7 +1671,7 @@ Blockly.BlockSvg.prototype.innerTopLeftCorner = function (notchPathRight) {
 };
 
 Blockly.BlockSvg.prototype.isUnused = function () {
-  return !!this.unusedSvg_;
+  return Blockly.elementHasClass_(this.svgGroup_, 'blocklyUnused');
 };
 
 Blockly.BlockSvg.prototype.setIsUnused = function (isUnused) {
@@ -1450,12 +1680,20 @@ Blockly.BlockSvg.prototype.setIsUnused = function (isUnused) {
   } else {
     Blockly.removeClass_(this.svgGroup_, 'blocklyUnused');
   }
-  if (!isUnused && this.unusedSvg_) {
+
+  this.removeUnusedFrame();
+};
+
+Blockly.BlockSvg.prototype.addUnusedFrame = function () {
+  if (!this.unusedSvg_) {
+    this.unusedSvg_ = new Blockly.BlockSvgUnused(this);
+  }
+  this.unusedSvg_.render(this.svgGroup_);
+};
+
+Blockly.BlockSvg.prototype.removeUnusedFrame = function () {
+  if (this.unusedSvg_) {
     this.unusedSvg_.dispose();
     this.unusedSvg_ = null;
-  } else if (isUnused && !this.unusedSvg_) {
-    this.unusedSvg_ = new Blockly.BlockSvgUnused(this.block_);
   }
-
-  this.render();
 };
