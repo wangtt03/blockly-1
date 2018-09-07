@@ -146,6 +146,7 @@ Blockly.parseOptions_ = function(options) {
     topLevelProcedureAutopopulate = false;
   }
   return {
+    isPortrait: options["isPortrait"],
     RTL: !!options['rtl'],
     collapse: hasCollapse,
     readOnly: readOnly,

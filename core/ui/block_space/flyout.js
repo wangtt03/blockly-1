@@ -153,7 +153,7 @@ Blockly.Flyout.prototype.createDom = function(insideToolbox) {
   this.svgGroup_.appendChild(this.blockSpace_.createDom());
 
   // Add a trashcan.
-  if (!insideToolbox) {
+  if (!Blockly.isPortrait && !insideToolbox) {
     this.trashcan = new Blockly.Trashcan(this);
     this.svgTrashcan_ = this.trashcan.createDom();
     this.svgTrashcan_.setAttribute("style",
@@ -309,17 +309,17 @@ Blockly.Flyout.prototype.position_ = function() {
     edgeWidth *= -1;
   }
   var path = ['M ' + (Blockly.RTL ? this.width_ : 0) + ',0'];
-  path.push('h', edgeWidth);
-  path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
-      Blockly.RTL ? 0 : 1,
-      Blockly.RTL ? -this.CORNER_RADIUS : this.CORNER_RADIUS,
-      this.CORNER_RADIUS);
-  path.push('v', Math.max(0, metrics.viewHeight - this.CORNER_RADIUS * 2));
-  path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
-      Blockly.RTL ? 0 : 1,
-      Blockly.RTL ? this.CORNER_RADIUS : -this.CORNER_RADIUS,
-      this.CORNER_RADIUS);
-  path.push('h', -edgeWidth);
+  path.push('h', edgeWidth + this.CORNER_RADIUS);
+  // path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
+  //     Blockly.RTL ? 0 : 1,
+  //     Blockly.RTL ? -this.CORNER_RADIUS : this.CORNER_RADIUS,
+  //     this.CORNER_RADIUS);
+  path.push('v', Math.max(0, metrics.viewHeight));
+  // path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
+  //     Blockly.RTL ? 0 : 1,
+  //     Blockly.RTL ? this.CORNER_RADIUS : -this.CORNER_RADIUS,
+  //     this.CORNER_RADIUS);
+  path.push('h', -edgeWidth-this.CORNER_RADIUS);
   path.push('z');
   this.svgBackground_.setAttribute('d', path.join(' '));
 
@@ -329,7 +329,9 @@ Blockly.Flyout.prototype.position_ = function() {
     x = this.static_ ? 0 : -this.width_;
     x += metrics.viewWidth;
   } else if (this.static_) {
-    x -= this.width_;
+    if (!Blockly.isPortrait) {
+      x -= this.width_;
+    }
   }
   this.svgGroup_.setAttribute('transform', 'translate(' + x + ',' + y + ')');
 
@@ -798,6 +800,9 @@ Blockly.Flyout.prototype.createBlockFunc_ = function(originBlock) {
           }, 0);
         }
       );
+    }
+    if (Blockly.isPortrait) {
+      flyout.svgGroup_.style.display = 'none';
     }
     // Start a dragging operation on the new block.
     block.onMouseDown_(e);

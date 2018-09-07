@@ -84,10 +84,12 @@ Blockly.Toolbox.prototype.createDom = function (svg) {
     height: 90,
     style: 'display: none; position: absolute'
   }, this.HtmlDiv);
-  this.trashcan = new Blockly.Trashcan(this);
-  this.svgTrashcan = this.trashcan.createDom();
-  this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
-  this.trashcanHolder.appendChild(this.svgTrashcan);
+  if (!Blockly.isPortrait){
+    this.trashcan = new Blockly.Trashcan(this);
+    this.svgTrashcan = this.trashcan.createDom();
+    this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
+    this.trashcanHolder.appendChild(this.svgTrashcan);
+  }
 
   /**
    * @type {!Blockly.Flyout}
@@ -173,6 +175,22 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
   this.trashcanHolder.style["left"] = trashcanX + 'px';
 };
 
+Blockly.Toolbox.prototype.updateToolbox = function(tree) {
+  
+  var tree = new Blockly.Toolbox.TreeControl(this, 'root', Blockly.Toolbox.CONFIG_);
+  this.tree_ = tree;
+  tree.setShowRootNode(false);
+  tree.setShowLines(false);
+  tree.setShowExpandIcons(false);
+  tree.setSelectedItem(null);
+  
+  Blockly.languageTree = Blockly.Xml.textToDom(tree);
+  // this.flyout_.init(blockSpace, true);
+  this.populate_();
+  tree.render(this.HtmlDiv);
+  this.addColour_();
+};
+
 /**
  * Fill the toolbox with categories and blocks.
  * @private
@@ -180,6 +198,7 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
 Blockly.Toolbox.prototype.populate_ = function() {
   var rootOut = this.tree_;
   rootOut.blocks = [];
+  var hasColours = false;
   function syncTrees(treeIn, treeOut) {
     for (var i = 0, childIn; childIn = treeIn.childNodes[i]; i++) {
       if (!childIn.tagName) {
@@ -188,7 +207,66 @@ Blockly.Toolbox.prototype.populate_ = function() {
       }
       var name = childIn.tagName.toUpperCase();
       if (name === 'CATEGORY') {
-        var childOut = rootOut.createNode(childIn.getAttribute('name'));
+        var catMsg = childIn.getAttribute('name');
+        var catname = Blockly.Msg[catMsg];
+        if (!catname) {
+          catname = catMsg;
+        }
+
+        switch (catname.trim()) {
+          case 'Actions': {
+            catname = '动作';
+            break;
+          }
+          case 'Loops': {
+            catname = '循环';
+            break;
+          }
+          case 'Events': {
+            catname = '事件';
+            break;
+          }
+          case 'Conditionals': {
+            catname = '条件';
+            break;
+          }
+          case 'Functions': {
+            catname = '函数';
+            break;
+          }
+          case 'Math': {
+            catname = '数学';
+            break;
+          }
+          case 'Variables': {
+            catname = '变量';
+            break;
+          }
+          case 'Brushes': {
+            catname = '画笔';
+            break;
+          }
+          case 'Color': {
+            catname = '颜色';
+            break;
+          }
+          case 'Prebuilt': {
+            catname = '工具';
+            break;
+          }
+          case 'Text': {
+            catname = '文字';
+            break;
+          }
+          case 'Input': {
+            catname = '输入';
+            break;
+          }
+        }
+
+
+        var childOut = rootOut.createNode(catname);
+        childOut.categoryName = catname;
         childOut.blocks = [];
         treeOut.add(childOut);
         var custom = childIn.getAttribute('custom');
@@ -197,14 +275,16 @@ Blockly.Toolbox.prototype.populate_ = function() {
           childOut.blocks[0] = custom;
         }
 
+        
         syncTrees(childIn, childOut);
+        
       } else if (name === 'BLOCK') {
         treeOut.blocks.push(childIn);
       }
     }
   }
   syncTrees(Blockly.languageTree, this.tree_);
-
+  this.hasColours_ = hasColours;
   if (rootOut.blocks.length) {
     throw 'Toolbox cannot have both blocks and categories in the root level.';
   }
@@ -410,4 +490,28 @@ Blockly.Toolbox.TreeNode.prototype.onMouseDown = function(e) {
  */
 Blockly.Toolbox.TreeNode.prototype.onDoubleClick_ = function(e) {
   // NOP.
+};
+
+/**
+ * Recursively add colours to this toolbox.
+ * @param {Blockly.Toolbox.TreeNode} opt_tree Starting point of tree.
+ *     Defaults to the root node.
+ * @private
+ */
+Blockly.Toolbox.prototype.addColour_ = function(opt_tree, opt_sub) {
+  var tree = opt_tree || this.tree_; 
+  var currentColour = tree.hexColour;
+  var children = tree.getChildren();
+  for (var i = 0, child; child = children[i]; i++) {
+    var element = child.getRowElement();
+    if (element) {
+      if (!!child.hexColour) {
+        element.style['background-color']= child.hexColour;
+      }
+      if (!!child.categoryName) {
+        element.setAttribute("category-name", child.categoryName);
+      }
+    }
+    this.addColour_(child, true);
+  }
 };

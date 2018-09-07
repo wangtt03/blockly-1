@@ -394,6 +394,7 @@ Blockly.Blocks.procedures_callnoreturn = {
     this.setHSV(94, 0.84, 0.60);
 
     var mainTitle = this.appendDummyInput()
+      .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/procedure_function.png"))
       .appendTitle(Blockly.Msg.PROCEDURES_CALLNORETURN_CALL)
       .appendTitle('', 'NAME');
 

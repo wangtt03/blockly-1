@@ -144,11 +144,10 @@ Blockly.Trashcan.prototype.createDom = function() {
   <g filter="url(#blocklyTrashcanShadowFilter)">
     <image width="100" height="100" href="media/canclosed.png"></image>
     <image width="100" height="100" visibility="hidden" href="media/canopen.png"></image>
-    <line x0="0" y1="0" x2="100" y2="100" stroke="red" visibility="hidden"></line>
   </g>
   */
   this.svgGroup_ = Blockly.createSvgElement('g',
-      {'id': 'trashcan', 'filter': 'url(#blocklyTrashcanShadowFilter)'}, null);
+      {'id': 'trashcan', 'filter': Blockly.isPortrait? '' : 'url(#blocklyTrashcanShadowFilter)'}, null);
   this.svgClosedCan_ = Blockly.createSvgElement('image',
       {'width': Blockly.Trashcan.WIDTH_, 'height': Blockly.Trashcan.HEIGHT_},
       this.svgGroup_);
@@ -170,6 +169,21 @@ Blockly.Trashcan.prototype.createDom = function() {
   return this.svgGroup_;
 };
 
+
+Blockly.Trashcan.prototype.getRect = function() {
+  if (!this.svgGroup_) {
+    return null;
+  }
+
+  var trashRect = this.svgGroup_.getBoundingClientRect();
+  var left = trashRect.left ;
+  var top = trashRect.top ;
+  var width = Blockly.Trashcan.WIDTH_ + 2 * Blockly.Trashcan.MARGIN_HOTSPOT_;
+  var height = Blockly.Trashcan.HEIGHT_ + 2 * Blockly.Trashcan.MARGIN_HOTSPOT_;
+  return new goog.math.Rect(left, top, width, height);
+
+};
+
 /**
  * Dispose of this trash can.
  * Unlink from all DOM elements to prevent memory leaks.
@@ -185,12 +199,14 @@ Blockly.Trashcan.prototype.dispose = function() {
   this.blockSpace_ = null;
 };
 
+
 /**
  * Returns the trashcan's current height in pixels
  */
 Blockly.Trashcan.prototype.getHeight = function() {
   return Blockly.Trashcan.HEIGHT_;
 };
+
 
 /**
  * Flip the lid open or shut.

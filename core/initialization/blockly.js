@@ -317,3 +317,5 @@ Blockly.removeAllRanges = function() {
     }
   }
 };
+
+Blockly.assetUrlRoot = "https://images.k12mlmq.com";

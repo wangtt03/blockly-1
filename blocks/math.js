@@ -32,6 +32,7 @@ Blockly.Blocks.math_number = {
   // Numeric value.
   init: function() {
     this.setHelpUrl(Blockly.Msg.MATH_NUMBER_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.appendDummyInput()
         .appendTitle(new Blockly.FieldTextInput('0',
         Blockly.FieldTextInput.numberValidator), 'NUM');
@@ -50,6 +51,7 @@ Blockly.Blocks.math_arithmetic = {
          [Blockly.Msg.MATH_DIVISION_SYMBOL, 'DIVIDE'],
          [Blockly.Msg.MATH_POWER_SYMBOL, 'POWER']];
     this.setHelpUrl(Blockly.Msg.MATH_ARITHMETIC_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendValueInput('A')
         .setCheck(Blockly.BlockValueType.NUMBER);
@@ -85,6 +87,7 @@ Blockly.Blocks.math_single = {
          ['e^', 'EXP'],
          ['10^', 'POW10']];
     this.setHelpUrl(Blockly.Msg.MATH_SINGLE_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendValueInput('NUM')
         .setCheck(Blockly.BlockValueType.NUMBER)
@@ -118,6 +121,7 @@ Blockly.Blocks.math_trig = {
          [Blockly.Msg.MATH_TRIG_ACOS, 'ACOS'],
          [Blockly.Msg.MATH_TRIG_ATAN, 'ATAN']];
     this.setHelpUrl(Blockly.Msg.MATH_TRIG_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendValueInput('NUM')
         .setCheck(Blockly.BlockValueType.NUMBER)
@@ -150,6 +154,7 @@ Blockly.Blocks.math_constant = {
          ['sqrt(\u00bd)', 'SQRT1_2'],
          ['\u221e', 'INFINITY']];
     this.setHelpUrl(Blockly.Msg.MATH_CONSTANT_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendDummyInput()
         .appendTitle(new Blockly.FieldDropdown(CONSTANTS), 'CONSTANT');
@@ -169,6 +174,7 @@ Blockly.Blocks.math_number_property = {
          [Blockly.Msg.MATH_IS_POSITIVE, 'POSITIVE'],
          [Blockly.Msg.MATH_IS_NEGATIVE, 'NEGATIVE'],
          [Blockly.Msg.MATH_IS_DIVISIBLE_BY, 'DIVISIBLE_BY']];
+    this.setHSV(258, 0.35, 0.62);
     this.appendValueInput('NUMBER_TO_CHECK')
         .setCheck(Blockly.BlockValueType.NUMBER);
     var dropdown = new Blockly.FieldDropdown(PROPERTIES, function(option) {
@@ -243,6 +249,7 @@ Blockly.Blocks.math_round = {
          [Blockly.Msg.MATH_ROUND_OPERATOR_ROUNDUP, 'ROUNDUP'],
          [Blockly.Msg.MATH_ROUND_OPERATOR_ROUNDDOWN, 'ROUNDDOWN']];
     this.setHelpUrl(Blockly.Msg.MATH_ROUND_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendValueInput('NUM')
         .setCheck(Blockly.BlockValueType.NUMBER)
@@ -267,6 +274,7 @@ Blockly.Blocks.math_on_list = {
     // Assign 'this' to a variable for use in the closure below.
     var thisBlock = this;
     this.setHelpUrl(Blockly.Msg.MATH_ONLIST_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     var dropdown = new Blockly.FieldDropdown(OPERATORS, function(newOp) {
       if (newOp == 'MODE') {
@@ -299,6 +307,7 @@ Blockly.Blocks.math_modulo = {
   // Remainder of a division.
   init: function() {
     this.setHelpUrl(Blockly.Msg.MATH_MODULO_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.interpolateMsg(Blockly.Msg.MATH_MODULO_TITLE,
                         ['DIVIDEND', 'Number', Blockly.ALIGN_RIGHT],
@@ -313,6 +322,7 @@ Blockly.Blocks.math_constrain = {
   // Constrain a number between two limits.
   init: function() {
     this.setHelpUrl(Blockly.Msg.MATH_CONSTRAIN_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.interpolateMsg(Blockly.Msg.MATH_CONSTRAIN_TITLE,
                         ['VALUE', 'Number', Blockly.ALIGN_RIGHT],
@@ -328,6 +338,7 @@ Blockly.Blocks.math_random_int = {
   // Random integer between [X] and [Y].
   init: function() {
     this.setHelpUrl(Blockly.Msg.MATH_RANDOM_INT_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.interpolateMsg(Blockly.Msg.MATH_RANDOM_INT_TITLE,
                         ['FROM', 'Number', Blockly.ALIGN_RIGHT],
@@ -342,6 +353,7 @@ Blockly.Blocks.math_random_float = {
   // Random fraction between 0 and 1.
   init: function() {
     this.setHelpUrl(Blockly.Msg.MATH_RANDOM_FLOAT_HELPURL);
+    this.setHSV(258, 0.35, 0.62);
     this.setOutput(true, Blockly.BlockValueType.NUMBER);
     this.appendDummyInput()
         .appendTitle(Blockly.Msg.MATH_RANDOM_FLOAT_TITLE_RANDOM);

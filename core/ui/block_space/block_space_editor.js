@@ -361,7 +361,11 @@ Blockly.BlockSpaceEditor.prototype.addFlyout_ = function() {
   flyout.init(this.blockSpace, true);
   flyout.autoClose = false;
   // Insert the flyout behind the blockSpace so that blocks appear on top.
-  goog.dom.insertSiblingBefore(flyoutSvg, this.blockSpace.svgGroup_);
+  if (Blockly.isPortrait) {
+    goog.dom.insertSiblingAfter(flyoutSvg, this.blockSpace.svgGroup_);
+  } else {
+    goog.dom.insertSiblingBefore(flyoutSvg, this.blockSpace.svgGroup_);
+  }
 };
 
 /**
@@ -571,7 +575,7 @@ Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
      */
     var container = Blockly.createSvgElement('g', {}, this.svg_);
     Blockly.createSvgElement('path',
-      {'d': 'M 0,50 C 75,-25 75,50 125,0 Z'}, container);
+      {'d': 'm 0,0 c 0,-5 0,-5 0,0 H 50 V 50 z'}, container);
     if (Blockly.isMsie() || Blockly.isTrident()) {
       container.style.display = "inline";
       /* reqd for IE */
@@ -585,10 +589,10 @@ Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
     else {
       container.bBox_ = container.getBBox();
     }
-    if (container.bBox_.height > 50) {
-      // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
-      Blockly.BROKEN_CONTROL_POINTS = true;
-    }
+    // if (container.bBox_.height > 50) {
+    //   // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
+    //   // Blockly.BROKEN_CONTROL_POINTS = true;
+    // }
     this.svg_.removeChild(container);
   }
 };
@@ -890,7 +894,7 @@ Blockly.BlockSpaceEditor.prototype.getBlockSpaceMetrics_ = function() {
   var svgSize = this.svgSize(); // includes toolbox
   var toolboxWidth = 0;
   if (this.toolbox || this.flyout_) {
-    toolboxWidth = this.toolbox ? this.toolbox.width : this.flyout_.width_;
+    toolboxWidth = this.toolbox ? this.toolbox.width : (Blockly.isPortrait? 0 : this.flyout_.width_);
   }
   svgSize.width -= toolboxWidth;
   try {
@@ -973,6 +977,10 @@ Blockly.BlockSpaceEditor.prototype.setBlockSpaceMetrics_ = function(xyRatio) {
   var translation = 'translate(' + x + ',' + y + ')';
   this.blockSpace.getCanvas().setAttribute('transform', translation);
   this.blockSpace.getBubbleCanvas().setAttribute('transform', translation);
+  if (this.blockSpace.getTrashCan()) {
+    this.blockSpace.getTrashCan().setAttribute("style", "display: block; pointer-events: none");
+    this.blockSpace.getTrashCan().setAttribute('transform', 'translate(' + (metrics.absoluteLeft + metrics.viewWidth - 100) + ',' + 0 + ')');
+  }
 
   var offset = Blockly.convertCoordinates(x, y, this.svg_, false);
   this.blockSpace.getDragCanvas().setAttribute('transform', 'translate(' + offset.x + ',' + offset.y + ')');

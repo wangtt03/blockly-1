@@ -358,6 +358,14 @@ Blockly.BlockSpace.prototype.createDom = function() {
       }
     });
   });
+  
+  if (Blockly.isPortrait){
+    this.trashcan = new Blockly.Trashcan(this);
+    this.svgTrashcan_ = this.trashcan.createDom();
+    this.svgTrashcan_.setAttribute("style", "display: none; pointer-events: none");
+    // this.svgTrashcan_.setAttribute("transform", "translate("+0+", 20)");
+    this.svgGroup_.appendChild(this.svgTrashcan_);
+  }
 
   this.fireChangeEvent();
   return this.svgGroup_;
@@ -458,6 +466,10 @@ Blockly.BlockSpace.prototype.getDragCanvas = function () {
  */
 Blockly.BlockSpace.prototype.getBubbleCanvas = function() {
   return this.svgBubbleCanvas_;
+};
+
+Blockly.BlockSpace.prototype.getTrashCan = function() {
+  return this.svgTrashcan_;
 };
 
 /**
@@ -769,11 +781,11 @@ Blockly.BlockSpace.prototype.recordDeleteAreas = function() {
     this.deleteAreaTrash_ = null;
   }
 
-  if (this.flyout_) {
+  if (!Blockly.isPortrait && this.flyout_) {
     goog.array.extend(this.deleteAreas_, this.flyout_.getRect());
   }
 
-  if (this.blockSpaceEditor) {
+  if (!Blockly.isPortrait && this.blockSpaceEditor) {
     goog.array.extend(this.deleteAreas_,
         this.blockSpaceEditor.getDeleteAreas());
   }
@@ -839,12 +851,15 @@ Blockly.BlockSpace.prototype.hideDelete = function() {
 /**
 * Draws the trash zone over the toolbox/flyout, as the user drags an
 * item towards it.
-* @param x
+* @param {!Event} e Mouse move event.
 * @param {integer} startDragX The x coordinate of the drag start.
-* @param undeletable
 * @return {boolean} True if event is in a delete area.
 */
 Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX, undeletable) {
+  if (Blockly.isPortrait) {
+    return;
+  }
+
   var background;
   var blockGroup;
   var trashcan;
