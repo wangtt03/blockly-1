@@ -10,28 +10,31 @@
 goog.require('Blockly.Playground');
 goog.require('goog.tweak');
 goog.require('goog.tweak.TweakUi');
-// Depending on the URL argument, render as LTR or RTL.
-var rtl = (document.location.search == '?rtl');
 var block = null;
 </script>
 <script type="text/javascript" src="../msg/js/en_us.js"></script>
 <script type="text/javascript">
 function start() {
+  goog.tweak.registerBoolean('RTL', 'run in right-to-left mode', false);
   goog.tweak.registerBoolean('editBlocks', 'opens with level builder mode enabled', false);
   goog.tweak.registerBoolean('nonCategoryMode', 'opens blockly with blocks in categories', false);
   goog.tweak.registerBoolean('openContractEditor', 'pre-opens contract editor', false);
   goog.tweak.registerBoolean('toggleScrollDragDebug', 'enables autoscroll debugging', false);
   goog.tweak.registerBoolean('openFunctionEditor', 'pre-opens function editor', false);
+  goog.tweak.registerBoolean('openCustomizedFunctionEditor', 'pre-opens customized function editor', false);
   goog.tweak.registerBoolean('enableExampleRunning', 'enables running of examples', false);
+  goog.tweak.registerBoolean('typeHints', 'glow typed inputs based on what color of block they expect', false);
   goog.tweak.registerNumber('addContractDomains', 'adds a given number of domain parameters to the auto-opened contract editor', 0);
 
   Blockly.inject(document.getElementById('blocklyDiv'), {
-    rtl: rtl,
+    rtl: goog.tweak.getBoolean('RTL'),
     path: '../',
     toolbox: getToolboxElement(),
     hasVerticalScrollbars: true,
     assetUrl: function(path) { return '../' + path; },
-    customSimpleDialog: Blockly.Playground.customSimpleDialog
+    customSimpleDialog: Blockly.Playground.customSimpleDialog,
+    valueTypeTabShapeMap: { Sprite: 'angle', Behavior: 'rounded', Location: 'square' },
+    typeHints: goog.tweak.getBoolean('typeHints')
   });
 
   if (goog.tweak.getBoolean('enableExampleRunning')) {
@@ -46,6 +49,8 @@ function start() {
     newContractEditor();
   } else if (goog.tweak.getBoolean('openFunctionEditor')) {
     newFunctionEditor();
+  } else if (goog.tweak.getBoolean('openCustomizedFunctionEditor')) {
+    newCustomizedFunctionEditor();
   }
   if (goog.tweak.getBoolean('toggleScrollDragDebug')) {
     Blockly.ScrollOnBlockDragHandler.DEBUG = true;
@@ -111,6 +116,28 @@ function newFunctionEditor() {
   Blockly.functionEditor = new Blockly.FunctionEditor({
   });
   Blockly.functionEditor.openWithNewFunction();
+}
+
+function newCustomizedFunctionEditor() {
+  Blockly.oceanBoilerEditor = new Blockly.FunctionEditor(
+    {
+      FUNCTION_HEADER: 'Ocean Boiler',
+      FUNCTION_NAME_LABEL: 'Name your ocean boiler:',
+      FUNCTION_DESCRIPTION_LABEL: 'What kind of ocean is this supposed to boil?',
+    },
+    'ocean_boiler_definition',
+    null,
+    false,
+    [
+      Blockly.BlockValueType.NUMBER,
+      Blockly.BlockValueType.STRING,
+      Blockly.BlockValueType.COLOUR,
+      Blockly.BlockValueType.BOOLEAN,
+      Blockly.BlockValueType.SPRITE,
+      Blockly.BlockValueType.LOCATION
+    ]
+  );
+  Blockly.oceanBoilerEditor.openWithNewFunction();
 }
 
 function toXml() {
@@ -433,10 +460,28 @@ h1 {
     </category>
     <category name="Variables" custom="VARIABLE"></category>
     <category name="Functions" custom="PROCEDURE"></category>
+    <category name="Sprites">
+      <block type="sprite_variables_get"></block>
+      <block type="sprite_variables_set"></block>
+      <block type="sprite_variables_set" inline="true"></block>
+      <block type="behavior_variables_get"></block>
+      <block type="behavior_variables_set"></block>
+      <block type="behavior_variables_set" inline="true"></block>
+      <block type="location_variables_get"></block>
+      <block type="location_variables_set"></block>
+      <block type="location_variables_set" inline="true"></block>
+    </category>
     <category name="CSinA Vars" custom="FUNCTIONAL_VARIABLE" />
   </xml>
 
   <xml id="non-category-toolbox" style="display: none">
+    <block type="button_block"></block>
+    <block type="variables_get"></block>
+    <block type="variables_set"></block>
+    <block type="variables_set" inline="true"></block>
+    <block type="sprite_variables_get"></block>
+    <block type="sprite_variables_set"></block>
+    <block type="sprite_variables_set" inline="true"></block>
     <block type="controls_if"></block>
     <block type="logic_compare"></block>
     <block type="logic_operation"></block>
@@ -452,14 +497,6 @@ h1 {
 
       <p><a href="javascript:void([document.getElementById('blocklyDiv').style.display = 'block', Blockly.mainBlockSpace.render()])">Show</a>
        - <a href="javascript:void(document.getElementById('blocklyDiv').style.display = 'none')">Hide</a></p>
-
-      <script type="text/javascript">
-        if (rtl) {
-          document.write('[ &larr; RTL. Switch to <A HREF="?ltr">LTR</A>. ]');
-        } else {
-          document.write('[ &rarr; LTR. Switch to <A HREF="?rtl">RTL</A>. ]');
-        }
-      </script>
 
       <p>
         <input type="button" value="Create Contract Editor" onclick="newContractEditor()">

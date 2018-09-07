@@ -52,6 +52,8 @@ goog.require('goog.style');
  *      BlockSpaceEditor.readOnly OR Blockly.readOnly are true
  * @param {boolean} opt_options.disableTooltip whether or not to disable tooltips for this
  *      blockSpace. It is recommended that only one blockSpace per page allow tooltips.
+ * @param {boolean} opt_options.disableEventBindings whether or not to skip setting up dom
+ *      event handlers for this blockspace
  */
 Blockly.BlockSpaceEditor = function(container, opt_options) {
   opt_options = opt_options || {};
@@ -68,9 +70,14 @@ Blockly.BlockSpaceEditor = function(container, opt_options) {
   if (opt_options.disableTooltip) {
     this.disableTooltip = opt_options.disableTooltip;
   }
+  if (opt_options.disableEventBindings) {
+    this.disableEventBindings = opt_options.disableEventBindings;
+  }
 
   this.readOnly_ = !!opt_options.readOnly;
   this.noScrolling_ = !!opt_options.noScrolling;
+  this.inline_ = !!opt_options.inline;
+  this.movementLocked_ = false;
 
   /**
    * @type {Blockly.BlockSpace}
@@ -225,6 +232,18 @@ Blockly.BlockSpaceEditor.prototype.populateSVGEffects_ = function(container) {
       {'width': 10, 'height': 10, 'fill': '#aaa'}, pattern);
   Blockly.createSvgElement('path',
       {'d': 'M 0 0 L 10 10 M 10 0 L 0 10', 'stroke': '#cc0'}, pattern);
+  /*
+   <filter id="blocklyTypeHintFilter">
+     <feConvolveMatrix order="5,5" kernelMatrix="0 0 ... 0.5 1">
+   </filter>
+   */
+  filter = Blockly.createSvgElement('filter', {
+    id: 'blocklyTypeHintFilter'
+  }, defs);
+  Blockly.createSvgElement('feConvolveMatrix', {
+    order: '5,5',
+    kernelMatrix: '0 0 0 0 0 0 0 0 0.5 1 0.5 1 1 1 1 0 0 0 0 0 0 0 0 0.5 1'
+  }, filter);
 };
 
 /**
@@ -256,7 +275,7 @@ Blockly.BlockSpaceEditor.prototype.createDom_ = function(container) {
     'xmlns:html': 'http://www.w3.org/1999/xhtml',
     'xmlns:xlink': 'http://www.w3.org/1999/xlink',
     'version': '1.1',
-    'class': 'blocklySvg'
+    'class': this.inline_ ? 'blocklySvg inline' : 'blocklySvg'
   }, null);
   this.svg_ = svg;
 
@@ -477,6 +496,7 @@ Blockly.BlockSpaceEditor.prototype.bumpBlocksIntoBlockSpace = function() {
   }, this);
 };
 
+
 Blockly.BlockSpaceEditor.prototype.init_ = function() {
   this.detectBrokenControlPoints();
 
@@ -488,11 +508,14 @@ Blockly.BlockSpaceEditor.prototype.init_ = function() {
   Blockly.bindEvent_(Blockly.WidgetDiv.DIV, 'contextmenu', null,
     Blockly.blockContextMenu);
 
-  if (!Blockly.documentEventsBound_) {
+  if (!this.disableEventBindings && !Blockly.documentEventsBound_) {
     // Only bind the window/document events once.
     // Destroying and reinjecting Blockly should not bind again.
     Blockly.bindEvent_(window, 'resize', this, this.svgResize);
     Blockly.bindEvent_(document, 'keydown', this, this.onKeyDown_);
+    Blockly.bindEvent_(document, 'copy', this, this.onCutCopy_);
+    Blockly.bindEvent_(document, 'cut', this, this.onCutCopy_);
+    Blockly.bindEvent_(document, 'paste', this, this.onPaste_);
     // Some iPad versions don't fire resize after portrait to landscape change.
     if (goog.userAgent.IPAD) {
       Blockly.bindEvent_(window, 'orientationchange', document, function () {
@@ -508,7 +531,7 @@ Blockly.BlockSpaceEditor.prototype.init_ = function() {
     } else {
       // Build a fixed flyout with the root blocks.
       this.flyout_.init(this.blockSpace, true);
-      this.flyout_.show(Blockly.languageTree.childNodes);
+      this.updateFlyout();
     }
   }
   if (!this.noScrolling_ &&
@@ -517,6 +540,20 @@ Blockly.BlockSpaceEditor.prototype.init_ = function() {
       this.blockSpace, Blockly.hasHorizontalScrollbars, Blockly.hasVerticalScrollbars);
     this.blockSpace.scrollbarPair.resize();
   }
+};
+
+Blockly.BlockSpaceEditor.prototype.updateFlyout = function() {
+  if (this.flyout_ && Blockly.languageTree) {
+    this.flyout_.show(Blockly.languageTree.childNodes);
+    this.svgResize();
+  }
+};
+
+Blockly.BlockSpaceEditor.prototype.getAllFlyoutBlocks = function() {
+  if (!this.flyout_) {
+    return [];
+  }
+  return this.flyout_.getAllBlocks();
 };
 
 Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
@@ -528,17 +565,13 @@ Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
      If the getBBox function returns a height of 55px instead of 50px, then
      this browser has broken control points.
 
-     NOTE:
-     chromium fixed this bug for path elements in commit 8f4c8e;
-     (https://chromium.googlesource.com/chromium/src.git/+/8f4c8e6d2f1260d68f387b37f078457e4153bbb4)
-     unfortunately, the bug still presents itself when getBBox is called
-     on containers that CONTAIN such a path element, which is our actual
-     use case. Thus, we draw the shape within a container and check the
-     size of the container.
+     This was fixed in Chrome 63. BROKEN_CONTROL_POINTS and all this detector
+     code can be removed when we drop support for Chrome versions older than
+     that.
      */
     var container = Blockly.createSvgElement('g', {}, this.svg_);
     Blockly.createSvgElement('path',
-      {'d': 'm 0,0 c 0,-5 0,-5 0,0 H 50 V 50 z'}, container);
+      {'d': 'M 0,50 C 75,-25 75,50 125,0 Z'}, container);
     if (Blockly.isMsie() || Blockly.isTrident()) {
       container.style.display = "inline";
       /* reqd for IE */
@@ -552,10 +585,10 @@ Blockly.BlockSpaceEditor.prototype.detectBrokenControlPoints = function() {
     else {
       container.bBox_ = container.getBBox();
     }
-    // if (container.bBox_.height > 50) {
-    //   // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
-    //   // Blockly.BROKEN_CONTROL_POINTS = true;
-    // }
+    if (container.bBox_.height > 50) {
+      // Chrome (v28) and Opera (v15) report 55, Safari (v6.0.5) reports 53.75.
+      Blockly.BROKEN_CONTROL_POINTS = true;
+    }
     this.svg_.removeChild(container);
   }
 };
@@ -677,8 +710,8 @@ Blockly.BlockSpaceEditor.prototype.onKeyDown_ = function(e) {
     // When focused on an HTML text input widget, don't trap any keys.
     return;
   }
-  if (e.keyCode == 27) {
-    // Pressing esc closes the context menu.
+  if (e.keyCode == 9 || e.keyCode == 27) {
+    // Pressing tab or esc closes the context menu.
     this.hideChaff();
   } else if (e.keyCode == 8 || e.keyCode == 46) {
     // Delete or backspace.
@@ -698,20 +731,42 @@ Blockly.BlockSpaceEditor.prototype.onKeyDown_ = function(e) {
       Blockly.selected.isDeletable() &&
       Blockly.selected.isCopyable()) {
       this.hideChaff();
-      if (e.keyCode == 67) {
-        // 'c' for copy.
+      if (e.keyCode == 67 || e.keyCode == 88) {
+        // 'c' for copy, 'x' for cut.
         Blockly.BlockSpaceEditor.copy_(Blockly.selected);
-      } else if (e.keyCode == 88) {
-        // 'x' for cut.
-        Blockly.BlockSpaceEditor.copy_(Blockly.selected);
-        Blockly.selected.dispose(true, true);
       }
     }
-    if (e.keyCode == 86) {
-      // 'v' for paste.
-      if (Blockly.clipboard_) {
-        Blockly.focusedBlockSpace.paste(Blockly.clipboard_);
-      }
+  }
+};
+
+/**
+ * Handle a clipboard copy on SVG drawing surface.
+ * @param {!Event} e Copy event.
+ * @private
+ */
+Blockly.BlockSpaceEditor.prototype.onCutCopy_ = function(e) {
+  if (Blockly.selected) {
+    e.clipboardData.setData('text/xml', Blockly.clipboard_);
+    e.preventDefault();
+
+    if (e.type === 'cut') {
+      Blockly.selected.dispose(true, true);
+    }
+  }
+};
+
+/**
+ * Handle a clipboard paste on SVG drawing surface.
+ * @param {!Event} e Paste event.
+ * @private
+ */
+Blockly.BlockSpaceEditor.prototype.onPaste_ = function(e) {
+  try {
+    var xml = Blockly.Xml.textToDom(e.clipboardData.getData('text/xml') || e.clipboardData.getData('text/plain'));
+    Blockly.focusedBlockSpace.paste(xml);
+  } catch (e) {
+    if (!/did not obtain a valid XML tree/.test(e)) {
+      throw e;
     }
   }
 };
@@ -737,10 +792,8 @@ Blockly.BlockSpaceEditor.copy_ = function(block) {
   var xy = block.getRelativeToSurfaceXY();
   xmlBlock.setAttribute('x', Blockly.RTL ? -xy.x : xy.x);
   xmlBlock.setAttribute('y', xy.y);
-  Blockly.clipboard_ = {
-    dom: xmlBlock,
-    sourceBlockSpace: block.blockSpace
-  };
+  // To be read by `this.onCutCopy_`.
+  Blockly.clipboard_ = '<xml>' + Blockly.Xml.domToText(xmlBlock) + '</xml>';
 };
 
 /**
@@ -964,6 +1017,28 @@ Blockly.BlockSpaceEditor.prototype.addUnusedBlocksHelpListener = function(func) 
  */
 Blockly.BlockSpaceEditor.prototype.isReadOnly = function() {
   return (Blockly.readOnly || this.readOnly_);
+};
+
+/**
+ * Disable block movement, but unlike readonly mode still allow field editing.
+ */
+Blockly.BlockSpaceEditor.prototype.lockMovement = function() {
+  this.movementLocked_ = true;
+};
+
+Blockly.BlockSpaceEditor.prototype.unlockMovement = function() {
+  this.movementLocked_ = false;
+};
+
+Blockly.BlockSpaceEditor.prototype.isMovementLocked = function() {
+  return this.movementLocked_;
+};
+
+/**
+ * @returns {boolean}
+ */
+Blockly.BlockSpaceEditor.prototype.shouldHavePadding = function() {
+  return !this.inline_;
 };
 
 /**

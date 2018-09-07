@@ -54,6 +54,7 @@ Blockly.Procedures.allProcedures = function() {
   var proceduresReturn = [];
   var proceduresNoReturn = [];
   var proceduresFunctional = [];
+  var proceduresOther = [];
 
   Blockly.mainBlockSpace.getAllBlocks().forEach(function(block) {
     if (!block.getProcedureInfo) {
@@ -77,13 +78,16 @@ Blockly.Procedures.allProcedures = function() {
       case 'procedures_defnoreturn':
         proceduresNoReturn.push(procedureInfo);
         break;
+      default:
+        proceduresOther.push(procedureInfo);
     }
   });
 
   proceduresNoReturn.sort(Blockly.Procedures.procedureInfoSort_);
   proceduresReturn.sort(Blockly.Procedures.procedureInfoSort_);
   proceduresFunctional.sort(Blockly.Procedures.procedureInfoSort_);
-  return goog.array.concat(proceduresNoReturn, proceduresReturn, proceduresFunctional);
+  proceduresOther.sort(Blockly.Procedures.procedureInfoSort_);
+  return goog.array.concat(proceduresNoReturn, proceduresReturn, proceduresFunctional, proceduresOther);
 };
 
 /**
@@ -162,13 +166,15 @@ Blockly.Procedures.rename = function(text) {
   // Ensure two identically-named procedures don't exist.
   text = Blockly.Procedures.findLegalName(text, this.sourceBlock_);
   // Rename any callers.
-  var blocks = this.sourceBlock_.blockSpace.getAllBlocks();
+  var blocks = this.sourceBlock_.blockSpace.getAllBlocks().concat(
+    this.sourceBlock_.blockSpace.blockSpaceEditor.getAllFlyoutBlocks());
   for (var x = 0; x < blocks.length; x++) {
     var func = blocks[x].renameProcedure;
     if (func) {
       func.call(blocks[x], this.text_, text);
     }
   }
+  this.sourceBlock_.blockSpace.blockSpaceEditor.svgResize();
   return text;
 };
 
@@ -184,7 +190,9 @@ Blockly.Procedures.rename = function(text) {
  *  will be included in the category.
  */
 Blockly.Procedures.flyoutCategory = function(blocks, gaps, margin, blockSpace, opt_procedureInfoFilter) {
-  if (!Blockly.functionEditor && !Blockly.disableProcedureAutopopulate) {
+  if (!Blockly.functionEditor &&
+      !Blockly.disableProcedureAutopopulate &&
+      !Blockly.topLevelProcedureAutopopulate) {
     if (Blockly.Blocks.procedures_defnoreturn) {
       var block = new Blockly.Block(blockSpace, 'procedures_defnoreturn');
       block.initSvg();
@@ -233,8 +241,9 @@ Blockly.Procedures.createCallerFromDefinition = function(blockSpace, definitionB
 };
 
 Blockly.Procedures.createCallerBlock = function(blockSpace, procedureDefinitionInfo) {
+  var title = procedureDefinitionInfo.callType === 'gamelab_behavior_get' ? 'VAR' : 'NAME';
   var newCallBlock = new Blockly.Block(blockSpace, procedureDefinitionInfo.callType);
-  newCallBlock.setTitleValue(procedureDefinitionInfo.name, 'NAME');
+  newCallBlock.setTitleValue(procedureDefinitionInfo.name, title);
   var tempIds = [];
   for (var t = 0; t < procedureDefinitionInfo.parameterNames.length; t++) {
     tempIds[t] = 'ARG' + t;

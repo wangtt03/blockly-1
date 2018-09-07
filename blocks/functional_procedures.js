@@ -26,6 +26,7 @@
 goog.provide('Blockly.Blocks.functionalProcedures');
 
 goog.require('Blockly.Blocks');
+goog.require('Blockly.Blocks.procedures');
 
 /**
  * Definition block for a custom functional block
@@ -212,7 +213,9 @@ Blockly.Blocks.functional_definition = {
     }
   },
   getVars: function() {
-    return this.parameterNames_;
+    return {
+      Default: this.parameterNames_,
+    };
   },
   renameVar: function(oldName, newName) {
     var change = false;

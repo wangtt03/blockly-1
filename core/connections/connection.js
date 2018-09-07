@@ -94,6 +94,16 @@ Blockly.Connection = function(source, type) {
 };
 
 /**
+ * Possible input/output tab shapes
+ */
+Blockly.Connection.Shapes = {
+  STANDARD: 'standard',
+  ANGLE: 'angle',
+  SQUARE: 'square',
+  ROUNDED: 'rounded'
+};
+
+/**
  * Is this connection currently connected to another connection.
  */
 Blockly.Connection.prototype.isConnected = function () {
@@ -383,6 +393,7 @@ Blockly.Connection.prototype.bumpAwayFrom_ = function(staticConnection) {
     dx = -dx;
   }
   rootBlock.moveBy(dx, dy);
+  rootBlock.bumpNeighbours();
 };
 
 /**
@@ -411,31 +422,72 @@ Blockly.Connection.prototype.moveBy = function(dx, dy) {
 };
 
 /**
- * Add highlighting around this connection.
+ * Get the hint type color for a given set of strict checks.
  */
-Blockly.Connection.prototype.highlight = function() {
+Blockly.Connection.prototype.colorForType = function(checks) {
+  if (!checks || checks.length > 1) {
+    return;
+  }
+  switch (checks[0]) {
+    case 'String':
+      return [160, 0.45, 0.65];
+    case 'Number':
+      return [258, 0.35, 0.62];
+    case 'Boolean':
+      return [196, 1.0, 0.79];
+    case 'Array':
+      return [40, 1.0, 0.99];
+    case 'Colour':
+      return [196, 1.0, 0.79];
+    case 'Sprite':
+      return [355, 0.70, 0.70];
+    case 'Behavior':
+      return [136, 0.84, 0.80];
+    case 'Location':
+      return [52, 0.70, 0.92];
+    default:
+      return;
+  }
+};
+
+/**
+ * Calculate the path to highlight this connection.
+ */
+Blockly.Connection.prototype.getPathInfo = function() {
   var steps;
   if (this.type === Blockly.INPUT_VALUE || this.type === Blockly.OUTPUT_VALUE) {
-    var tabWidth = Blockly.RTL ? -Blockly.BlockSvg.TAB_WIDTH :
-                                 Blockly.BlockSvg.TAB_WIDTH;
-    steps = 'm 0,0 v 5 c 0,10 ' + -tabWidth + ',-8 ' + -tabWidth + ',7.5 s ' +
-            tabWidth + ',-2.5 ' + tabWidth + ',7.5 v 5';
+    var path = Blockly.BlockSvg
+      .TAB_PATHS_BY_SHAPE[this.getTabShape()]
+      .TAB_PATH_DOWN;
+    steps = 'm 0,0 ' + path + ' v 5';
   } else {
     var moveWidth = 5 + Blockly.BlockSvg.NOTCH_PATH_WIDTH;
     var notchPaths = this.getNotchPaths();
-    if (Blockly.RTL) {
-      steps = 'm ' + moveWidth + ',0 h -5 ' + notchPaths.right + ' h -5';
-    } else {
-      steps = 'm -' + moveWidth + ',0 h 5 ' + notchPaths.left + ' h 5';
-    }
+    steps = 'm -' + moveWidth + ',0 h 5 ' + notchPaths.left + ' h 5';
   }
   var xy = this.sourceBlock_.getRelativeToSurfaceXY();
   var x = this.x_ - xy.x;
   var y = this.y_ - xy.y;
+  var transform = 'translate(' + x + ', ' + y + ')';
+  if (Blockly.RTL) {
+    transform += ' scale(-1, 1)';
+  }
+  return {
+    steps: steps,
+    transform: transform,
+    color: this.colorForType(this.check_)
+  };
+};
+
+/**
+ * Add highlighting around this connection.
+ */
+Blockly.Connection.prototype.highlight = function() {
+  var pathInfo = this.getPathInfo();
   Blockly.Connection.highlightedPath_ = Blockly.createSvgElement('path',
       {'class': 'blocklyHighlightedConnectionPath',
-       'd': steps,
-       transform: 'translate(' + x + ', ' + y + ')'},
+       'd': pathInfo.steps,
+       transform: pathInfo.transform},
       this.sourceBlock_.getSvgRoot());
 };
 
@@ -460,6 +512,24 @@ Blockly.Connection.prototype.getNotchPaths = function () {
     return SQUARE_NOTCH_PATHS;
   }
   return ROUNDED_NOTCH_PATHS;
+};
+
+/**
+ * Return the tab shape for this input or output connection
+ */
+Blockly.Connection.prototype.getTabShape = function () {
+  if (this.type !== Blockly.INPUT_VALUE && this.type !== Blockly.OUTPUT_VALUE) {
+    return null;
+  }
+  if (!this.strictType_ || !Blockly.valueTypeTabShapeMap) {
+    return Blockly.Connection.Shapes.STANDARD;
+  }
+  var type = this.check_[0];
+  if (!type) {
+    throw 'strict connections require a type';
+  }
+  return Blockly.valueTypeTabShapeMap[type] ||
+    Blockly.Connection.Shapes.STANDARD;
 };
 
 
@@ -620,9 +690,15 @@ Blockly.Connection.prototype.closest = function(maxLimit, dx, dy) {
  * @private
  */
 Blockly.Connection.prototype.checkAllowedConnectionType_ = function(otherConnection) {
-  if (this.acceptsAnyType() || otherConnection.acceptsAnyType()) {
+  if (!this.strictCheck() && !otherConnection.strictCheck() &&
+    (this.acceptsAnyType() || otherConnection.acceptsAnyType())) {
     // One or both sides are promiscuous enough that anything will fit.
     return true;
+  }
+  if ((this.strictCheck() && otherConnection.acceptsAnyType()) ||
+    (this.acceptsAnyType() && otherConnection.strictCheck())) {
+    // One side is stict but the other doesn't specify a type
+    return false;
   }
   // Find any intersection in the check lists.
   for (var x = 0; x < this.check_.length; x++) {
@@ -633,6 +709,14 @@ Blockly.Connection.prototype.checkAllowedConnectionType_ = function(otherConnect
   // No intersection.
   return false;
 };
+
+/**
+ * Returns whether this connection strictly checks connection types
+ * @returns {boolean}
+ */
+Blockly.Connection.prototype.strictCheck = function() {
+  return this.strictType_;
+}
 
 /**
  * Returns whether this connection is compatible with any/every type
@@ -652,13 +736,25 @@ Blockly.Connection.prototype.acceptsType = function(type) {
 };
 
 /**
- * Change a connection's compatibility.
+ * Change a connection's compatibility, with strict enforcement.
  * @param {*} check Compatible value type or list of value types.
- *     Null if all types are compatible.
  * @return {!Blockly.Connection} The connection being modified
  *     (to allow chaining).
  */
-Blockly.Connection.prototype.setCheck = function(check) {
+Blockly.Connection.prototype.setStrictCheck = function(check) {
+  return this.setCheck(check, true);
+}
+
+/**
+ * Change a connection's compatibility.
+ * @param {*} check Compatible value type or list of value types.
+ *     Null if all types are compatible.
+ * @param {boolean} opt_strict Set this check as strict, i.e. only accept
+ *     connections of the exact same type.
+ * @return {!Blockly.Connection} The connection being modified
+ *     (to allow chaining).
+ */
+Blockly.Connection.prototype.setCheck = function(check, opt_strict) {
   if (check && check !== Blockly.BlockValueType.NONE) {
     // Ensure that check is in an array.
     if (!(check instanceof Array)) {
@@ -666,6 +762,10 @@ Blockly.Connection.prototype.setCheck = function(check) {
     }
 
     this.check_ = check;
+    this.strictType_ = !!opt_strict;
+    if (this.strictType_ && !this.check_) {
+      throw 'Strict connections must specify a type';
+    }
 
     // The new value type may not be compatible with the existing connection.
     if (this.targetConnection && !this.checkAllowedConnectionType_(this.targetConnection)) {
@@ -675,7 +775,13 @@ Blockly.Connection.prototype.setCheck = function(check) {
         this.sourceBlock_.setParent(null);
       }
       // Bump away.
-      this.sourceBlock_.bumpNeighbours_();
+      this.sourceBlock_.bumpNeighbours();
+    }
+
+    // If the setting an output check, and the block has no color, make the
+    // block the default color for the given output type.
+    if (this.type === Blockly.OUTPUT_VALUE && !this.sourceBlock_.getColour()) {
+      this.sourceBlock_.setHSV.apply(this.sourceBlock_, this.colorForType(check));
     }
   } else {
     this.check_ = null;
@@ -724,7 +830,27 @@ Blockly.Connection.prototype.getCheck = function () {
 Blockly.Connection.prototype.neighbours_ = function(maxLimit) {
   // Determine the opposite type of connection.
   var oppositeType = Blockly.OPPOSITE_TYPE[this.type];
-  var db = this.dbList_[oppositeType];
+  var db1 = this.dbList_[this.type];
+  var db2 = this.dbList_[oppositeType];
+
+  // Construct a new connection DB, with matching and opposing connections.
+  var db = [];
+  var a = 0, b = 0, connection;
+  while (a < db1.length || b < db2.length) {
+    if (!db2[b] || (db1[a] && db1[a].y_ < db2[b].y_)) {
+      connection = db1[a];
+      if (connection !== this) {
+        db.push(connection)
+      }
+      a++;
+    } else {
+      connection = db2[b];
+      if (connection !== this) {
+        db.push(connection)
+      }
+      b++;
+    }
+  }
 
   var currentX = this.x_;
   var currentY = this.y_;
@@ -787,7 +913,6 @@ Blockly.Connection.prototype.neighbours_ = function(maxLimit) {
 /**
  * Hide this connection, as well as all down-stream connections on any block
  * attached to this connection.  This happens when a block is collapsed.
- * Also hides down-stream comments.
  */
 Blockly.Connection.prototype.hideAll = function() {
   if (this.inDB_) {
@@ -817,7 +942,6 @@ Blockly.Connection.prototype.hideAll = function() {
 /**
  * Unhide this connection, as well as all down-stream connections on any block
  * attached to this connection.  This happens when a block is expanded.
- * Also unhides down-stream comments.
  * @return {!Array.<!Blockly.Block>} List of blocks to render.
  */
 Blockly.Connection.prototype.unhideAll = function() {

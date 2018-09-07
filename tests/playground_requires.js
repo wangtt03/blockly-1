@@ -20,6 +20,7 @@ goog.require('Blockly.Blocks.loops');
 goog.require('Blockly.Blocks.math');
 goog.require('Blockly.Blocks.procedures');
 goog.require('Blockly.Blocks.text');
+goog.require('Blockly.Blocks.unknown');
 goog.require('Blockly.Blocks.variables');
 goog.require('Blockly.JavaScript');
 goog.require('Blockly.JavaScript.colour');
@@ -68,3 +69,100 @@ Blockly.Playground.customSimpleDialog = function (dialogOptions) {
   dialog.setButtonSet(buttons);
   dialog.setVisible(true);
 };
+
+function createVariableGet(type) {
+  return {
+    // Variable getter.
+    init: function() {
+      var fieldLabel = new Blockly.FieldLabel(Blockly.Msg.VARIABLES_GET_ITEM);
+      // Must be marked EDITABLE so that cloned blocks share the same var name
+      fieldLabel.EDITABLE = true;
+      this.setHelpUrl(Blockly.Msg.VARIABLES_GET_HELPURL);
+      this.appendDummyInput()
+        .appendTitle(Blockly.Msg.VARIABLES_GET_TITLE)
+        .appendTitle(Blockly.disableVariableEditing ? fieldLabel
+          : new Blockly.FieldParameter(Blockly.Msg.VARIABLES_GET_ITEM), 'VAR')
+        .appendTitle(Blockly.Msg.VARIABLES_GET_TAIL);
+      this.setStrictOutput(true, type);
+      this.setTooltip(Blockly.Msg.VARIABLES_GET_TOOLTIP);
+    }
+  }
+}
+
+function createVariableSet(type) {
+  return {
+    // Variable setter.
+    init: function() {
+      var fieldLabel = new Blockly.FieldLabel(Blockly.Msg.VARIABLES_SET_ITEM);
+      // Must be marked EDITABLE so that cloned blocks share the same var name
+      fieldLabel.EDITABLE = true;
+      this.setHelpUrl(Blockly.Msg.VARIABLES_SET_HELPURL);
+      this.setHSV(312, 0.32, 0.62);
+      this.appendValueInput('VALUE')
+        .setStrictCheck(type)
+        .appendTitle(Blockly.Msg.VARIABLES_SET_TITLE)
+        .appendTitle(Blockly.disableVariableEditing ? fieldLabel
+          : new Blockly.FieldVariable(Blockly.Msg.VARIABLES_SET_ITEM), 'VAR')
+        .appendTitle(Blockly.Msg.VARIABLES_SET_TAIL);
+      this.setPreviousStatement(true);
+      this.setNextStatement(true);
+      this.setTooltip(Blockly.Msg.VARIABLES_SET_TOOLTIP);
+    },
+    getVars: function() {
+      return Blockly.Variables.getVars.bind(this)(type);
+    },
+    renameVar: function(oldName, newName) {
+      if (Blockly.Names.equals(oldName, this.getTitleValue('VAR'))) {
+        this.setTitleValue(newName, 'VAR');
+      }
+    },
+    contextMenuMsg_: Blockly.Msg.VARIABLES_SET_CREATE_GET,
+      contextMenuType_: 'variables_get',
+    customContextMenu: Blockly.Blocks.variables_get.customContextMenu
+  }
+}
+
+Blockly.Blocks.sprite_variables_get = createVariableGet(Blockly.BlockValueType.SPRITE);
+Blockly.Blocks.sprite_variables_set = createVariableSet(Blockly.BlockValueType.SPRITE);
+
+Blockly.Blocks.behavior_variables_get = createVariableGet(Blockly.BlockValueType.BEHAVIOR);
+Blockly.Blocks.behavior_variables_set = createVariableSet(Blockly.BlockValueType.BEHAVIOR);
+
+Blockly.Blocks.location_variables_get = createVariableGet(Blockly.BlockValueType.LOCATION);
+Blockly.Blocks.location_variables_set = createVariableSet(Blockly.BlockValueType.LOCATION);
+
+Blockly.Blocks.button_block = {
+  // Example block with button field
+  init: function() {
+    this.setHSV(131, 0.64, 0.62);
+    var span = document.createElementNS("http://www.w3.org/2000/svg", 'tspan');
+    span.style.fill = 'blue';
+    span.textContent = 'button';
+    this.appendDummyInput()
+        .appendTitle("here's a button")
+        .appendTitle(
+          new Blockly.FieldButton(span, function () {
+              return new Promise(resolve => resolve(prompt()));
+            },
+            this.getHexColour(),
+          ),
+          'VALUE',
+        );
+    this.setOutput(true, Blockly.BlockValueType.STRING);
+  },
+};
+
+Blockly.Blocks.ocean_boiler_definition = Object.assign({},
+  Blockly.Blocks.procedures_defnoreturn,
+  {
+    init: function() {
+      Blockly.Blocks.procedures_defnoreturn.init.bind(this)();
+      this.appendDummyInput()
+          .appendTitle(new Blockly.FieldLabel('this is a different definition block'));
+      this.setInputsInline(false);
+      this.setHSV(20, 0.5, 0.5);
+    },
+  }
+);
+Blockly.Procedures.DEFINITION_BLOCK_TYPES.push('ocean_boiler_definition');
+

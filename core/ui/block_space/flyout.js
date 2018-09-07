@@ -29,13 +29,8 @@ goog.provide('Blockly.Flyout');
 
 goog.require('Blockly.Block');
 goog.require('Blockly.BlockLimits');
-goog.require('Blockly.Comment');
 goog.require('goog.math.Rect');
 
-/**
- * Opacity used to calculate flyout background color.
- */
-Blockly.FLYOUT_OPACITY = .35;
 
 /**
  * Class for a flyout.
@@ -107,6 +102,18 @@ Blockly.Flyout = function(blockSpaceEditor, opt_static) {
    */
   this.enabled_ = true;
 };
+
+/**
+ * Additional config for creating custom flyouts
+ * @type {string} type custom category for which to use the provided config
+ * @type {object} config
+ * @type {function} config.initialize
+ * @type {boolean} config.addDefaultVar
+ */
+Blockly.Flyout.configure = function (type, config) {
+  Blockly.Flyout.config[type] = config;
+}
+Blockly.Flyout.config = {};
 
 /**
  * Does the flyout automatically close when a block is created?
@@ -302,17 +309,17 @@ Blockly.Flyout.prototype.position_ = function() {
     edgeWidth *= -1;
   }
   var path = ['M ' + (Blockly.RTL ? this.width_ : 0) + ',0'];
-  path.push('h', edgeWidth + this.CORNER_RADIUS);
-  // path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
-  //     Blockly.RTL ? 0 : 1,
-  //     Blockly.RTL ? -this.CORNER_RADIUS : this.CORNER_RADIUS,
-  //     this.CORNER_RADIUS);
-  path.push('v', Math.max(0, metrics.viewHeight));
-  // path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
-  //     Blockly.RTL ? 0 : 1,
-  //     Blockly.RTL ? this.CORNER_RADIUS : -this.CORNER_RADIUS,
-  //     this.CORNER_RADIUS);
-  path.push('h', -edgeWidth-this.CORNER_RADIUS);
+  path.push('h', edgeWidth);
+  path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
+      Blockly.RTL ? 0 : 1,
+      Blockly.RTL ? -this.CORNER_RADIUS : this.CORNER_RADIUS,
+      this.CORNER_RADIUS);
+  path.push('v', Math.max(0, metrics.viewHeight - this.CORNER_RADIUS * 2));
+  path.push('a', this.CORNER_RADIUS, this.CORNER_RADIUS, 0, 0,
+      Blockly.RTL ? 0 : 1,
+      Blockly.RTL ? this.CORNER_RADIUS : -this.CORNER_RADIUS,
+      this.CORNER_RADIUS);
+  path.push('h', -edgeWidth);
   path.push('z');
   this.svgBackground_.setAttribute('d', path.join(' '));
 
@@ -369,7 +376,7 @@ Blockly.Flyout.prototype.hide = function(opt_saveBlock) {
   // Delete all the blocks.
   this.blockSpace_.getTopBlocks(false).forEach(function (block) {
     if (block.rendered && block !== opt_saveBlock) {
-      block.dispose(false, false);
+      block.dispose(false, false, true);
     }
   });
   // Delete all the background buttons.
@@ -421,20 +428,9 @@ Blockly.Flyout.prototype.layoutXmlToBlocks_ = function(xmlList, blocks, gaps, ma
  * @param {!Array|string} xmlList List of blocks to show.
  *     Variables and procedures have a custom set of blocks.
  */
-Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
+Blockly.Flyout.prototype.show = function(xmlList) {
   this.hide();
   this.svgGroup_.style.display = 'block';
-
-  if (opt_colour) {
-    var r = parseInt(opt_colour.substring(1, 3), 16);
-    var g = parseInt(opt_colour.substring(3, 5), 16);
-    var b = parseInt(opt_colour.substring(5, 7), 16);
-    var colour = "#";
-    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * r).toString(16);
-    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * g).toString(16);
-    colour += Math.round((1 - Blockly.FLYOUT_OPACITY) * 255 + Blockly.FLYOUT_OPACITY * b).toString(16);
-    this.svgBackground_.setAttribute('style', "fill: " + colour);
-}
 
   var margin = this.CORNER_RADIUS;
   var initialX = Blockly.RTL ? this.width_ : margin
@@ -459,8 +455,10 @@ Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
     // Allow for a mix of static + dynamic blocks. Static blocks will appear
     // first in the category
     this.layoutXmlToBlocks_(xmlList.slice(1), blocks, gaps, margin);
-    Blockly.Variables.flyoutCategory(blocks, gaps, margin, this.blockSpace_);
-  } else if (firstBlock === Blockly.Procedures.NAME_TYPE) {
+    Blockly.Variables.flyoutCategory(blocks, gaps, margin, this.blockSpace_,
+      Blockly.Variables.DEFAULT_CATEGORY, true /* addDefaultVar */);
+  } else if (firstBlock === Blockly.Procedures.NAME_TYPE ||
+    Blockly.topLevelProcedureAutopopulate) {
     // Special category for procedures.
     if (Blockly.functionEditor && !Blockly.functionEditor.isOpen()) {
       this.addButtonToFlyout_(cursor, Blockly.Msg.FUNCTION_CREATE, this.createFunction_);
@@ -470,10 +468,19 @@ Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
       this.layoutXmlToBlocks_(xmlList.slice(1), blocks, gaps, margin);
     }
 
-    Blockly.Procedures.flyoutCategory(blocks, gaps, margin,
-      this.blockSpace_,
-      function(procedureInfo) { return !procedureInfo.isFunctionalVariable; }
-    );
+    if (Blockly.topLevelProcedureAutopopulate) {
+      this.layoutXmlToBlocks_(xmlList, blocks, gaps, margin);
+    }
+
+    if (Blockly.mainBlockSpace) {
+      Blockly.Procedures.flyoutCategory(blocks, gaps, margin,
+        this.blockSpace_,
+        function(procedureInfo) {
+          return !procedureInfo.isFunctionalVariable &&
+            procedureInfo.type !== 'behavior_definition';
+        }
+      );
+    }
   } else if (firstBlock === Blockly.Procedures.NAME_TYPE_FUNCTIONAL_VARIABLE) {
     // Special category for functional variables.
     if (Blockly.functionEditor && !Blockly.functionEditor.isOpen()) {
@@ -484,6 +491,37 @@ Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
       this.blockSpace_,
       function(procedureInfo) { return procedureInfo.isFunctionalVariable; }
     );
+  } else if (firstBlock === 'Behavior' || Blockly.topLevelProcedureAutopopulate) {
+    // Special category for behaviors.
+    if (Blockly.disableProcedureAutopopulate) {
+      this.layoutXmlToBlocks_(xmlList.slice(1), blocks, gaps, margin);
+    }
+
+    if (Blockly.topLevelProcedureAutopopulate) {
+      this.layoutXmlToBlocks_(xmlList, blocks, gaps, margin);
+    }
+
+    if (Blockly.mainBlockSpace) {
+      Blockly.Procedures.flyoutCategory(blocks, gaps, margin,
+        this.blockSpace_,
+        function(procedureInfo) {
+          return procedureInfo.type === 'behavior_definition';
+        }
+      );
+    }
+  } else if (goog.isString(firstBlock)) {
+    // Special category for categorized variables.
+    // Allow for a mix of static + dynamic blocks. Static blocks will appear
+    // first in the category
+    var addDefaultVar = true;
+    var config = Blockly.Flyout.config[firstBlock];
+    if (config) {
+      addDefaultVar = config.addDefaultVar;
+      config.initialize(this, cursor);
+    }
+    this.layoutXmlToBlocks_(xmlList.slice(1), blocks, gaps, margin);
+    Blockly.Variables.flyoutCategory(
+      blocks, gaps, margin, this.blockSpace_, firstBlock, addDefaultVar);
   } else {
     this.layoutXmlToBlocks_(xmlList, blocks, gaps, margin);
   }
@@ -496,13 +534,9 @@ Blockly.Flyout.prototype.show = function(xmlList, opt_colour) {
       // prevent the closure of the flyout if the user right-clicks on such a
       // block.
       child.isInFlyout = true;
-      // There is no good way to handle comment bubbles inside the flyout.
-      // Blocks shouldn't come with predefined comments, but someone will
-      // try this, I'm sure.  Kill the comment.
-      child.setCommentText(null);
     }
 
-    block.render();
+    block.render(true);
     this.layoutBlock_(block, cursor, gaps[i], initialX);
     // Create an invisible rectangle under the block to act as a button.  Just
     // using the block as a button is poor, since blocks have holes in them.
@@ -716,10 +750,6 @@ Blockly.Flyout.prototype.createBlockFunc_ = function(originBlock) {
       // Right-click.  Don't create a block, let the context menu show.
       return;
     }
-    if (!flyout.blockSpaceEditor_.blockLimits.blockTypeWithinLimits(originBlock.type)) {
-      // at capacity.
-      return;
-    }
     if (originBlock.disabled) {
       // Beyond capacity.
       return;
@@ -759,6 +789,16 @@ Blockly.Flyout.prototype.createBlockFunc_ = function(originBlock) {
     } else {
       flyout.filterForCapacity_();
     }
+    if (Blockly.topLevelProcedureAutopopulate && block.isFunctionDefinition()) {
+      block.blockEvents.listenOnce(
+        Blockly.Block.EVENTS.AFTER_DROPPED,
+        function() {
+          window.setTimeout(function() {
+            targetBlockSpace.blockSpaceEditor.updateFlyout();
+          }, 0);
+        }
+      );
+    }
     // Start a dragging operation on the new block.
     block.onMouseDown_(e);
   };
@@ -789,7 +829,10 @@ Blockly.Flyout.prototype.filterForCapacity_ = function() {
 };
 
 Blockly.Flyout.prototype.updateBlockLimitTotals_ = function() {
-  var blocks = this.blockSpaceEditor_.blockSpace.getAllVisibleBlocks();
+  var blocks = this.blockSpaceEditor_.blockSpace.getAllBlocks();
+  blocks = goog.array.filter(blocks, function (block) {
+    return block.isUserVisible() && !block.getRootBlock().isUnused();
+  });
   var blockTypes = blocks.map(function (block) {
     return block.type;
   });
@@ -837,4 +880,8 @@ Blockly.Flyout.prototype.getRect = function() {
   }
   return new goog.math.Rect(x, -BIG_NUM,
     BIG_NUM + this.width_, this.height_ + 2 * BIG_NUM);
+};
+
+Blockly.Flyout.prototype.getAllBlocks = function() {
+  return this.blockSpace_.getAllBlocks();
 };

@@ -26,6 +26,7 @@
 goog.provide('Blockly.Blocks.variables');
 
 goog.require('Blockly.Blocks');
+goog.require('Blockly.Variables');
 
 
 Blockly.Blocks.variables_get = {
@@ -44,9 +45,7 @@ Blockly.Blocks.variables_get = {
     this.setOutput(true);
     this.setTooltip(Blockly.Msg.VARIABLES_GET_TOOLTIP);
   },
-  getVars: function() {
-    return [this.getTitleValue('VAR')];
-  },
+  getVars: Blockly.Variables.getVars,
   renameVar: function(oldName, newName) {
     if (Blockly.Names.equals(oldName, this.getTitleValue('VAR'))) {
       this.setTitleValue(newName, 'VAR');
@@ -80,7 +79,6 @@ Blockly.Blocks.variables_set = {
     this.setHelpUrl(Blockly.Msg.VARIABLES_SET_HELPURL);
     this.setHSV(312, 0.32, 0.62);
     this.appendValueInput('VALUE')
-        .appendTitle(new Blockly.FieldImage(Blockly.assetUrlRoot + "/assets/media/common_images/variables_set.png"))
         .appendTitle(Blockly.Msg.VARIABLES_SET_TITLE)
         .appendTitle(Blockly.disableVariableEditing ? fieldLabel
           : new Blockly.FieldVariable(Blockly.Msg.VARIABLES_SET_ITEM), 'VAR')
@@ -89,9 +87,7 @@ Blockly.Blocks.variables_set = {
     this.setNextStatement(true);
     this.setTooltip(Blockly.Msg.VARIABLES_SET_TOOLTIP);
   },
-  getVars: function() {
-    return [this.getTitleValue('VAR')];
-  },
+  getVars: Blockly.Variables.getVars,
   renameVar: function(oldName, newName) {
     if (Blockly.Names.equals(oldName, this.getTitleValue('VAR'))) {
       this.setTitleValue(newName, 'VAR');
@@ -118,12 +114,31 @@ Blockly.Blocks.parameters_get = {
     this.setOutput(true);
     this.setTooltip(Blockly.Msg.VARIABLES_GET_TOOLTIP);
   },
+  mutationToDom: function() {
+    var checks = this.outputConnection.getCheck();
+    if (checks && checks.length === 1) {
+      var container = document.createElement('mutation');
+      container.setAttribute('output', checks[0]);
+      return container;
+    }
+  },
+  domToMutation: function(container) {
+    var type = container.getAttribute('output');
+    if (type) {
+      // Clear current color, so we can infer it from output type.
+      this.setColour(null);
+      var strict = !!Blockly.valueTypeTabShapeMap[type];
+      this.outputConnection.setCheck(type, strict);
+    }
+  },
   renameVar: function(oldName, newName) {
     // Params should only be used in the FunctionEditor but better to be safe
-    if (Blockly.functionEditor && Blockly.functionEditor.isOpen()) {
-      Blockly.functionEditor.renameParameter(oldName, newName);
-      Blockly.functionEditor.refreshParamsEverywhere();
-    }
+    Blockly.FunctionEditor.allFunctionEditors.forEach(function(functionEditor) {
+      if (functionEditor.isOpen()) {
+        functionEditor.renameParameter(oldName, newName);
+        functionEditor.refreshParamsEverywhere();
+      }
+    });
   },
   removeVar: Blockly.Blocks.variables_get.removeVar
 };

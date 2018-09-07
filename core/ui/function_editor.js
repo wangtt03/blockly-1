@@ -20,7 +20,12 @@ goog.require('goog.structs.LinkedMap');
  * Class for a modal function editor.
  * @constructor
  */
-Blockly.FunctionEditor = function() {
+Blockly.FunctionEditor = function(
+    opt_msgOverrides,
+    opt_definitionBlockType,
+    opt_parameterBlockTypes,
+    opt_disableParamEditing,
+    opt_paramTypes) {
   /**
    * Whether this editor has been initialized
    * @type {boolean}
@@ -72,6 +77,16 @@ Blockly.FunctionEditor = function() {
 
   /** @type {BlockSpace} */
   this.modalBlockSpace = null;
+
+  this.msgOverrides_ = opt_msgOverrides || {};
+  if (opt_definitionBlockType) {
+    this.definitionBlockType = opt_definitionBlockType;
+  }
+  this.parameterBlockTypes = opt_parameterBlockTypes || {};
+  this.disableParamEditing = opt_disableParamEditing || false;
+  this.paramTypes = opt_paramTypes || [];
+
+  Blockly.FunctionEditor.allFunctionEditors.push(this);
 };
 
 Blockly.FunctionEditor.BLOCK_LAYOUT_LEFT_MARGIN = Blockly.BlockSpaceEditor.BUMP_PADDING_LEFT;
@@ -96,6 +111,20 @@ Blockly.FunctionEditor.RTL_CLOSE_BUTTON_OFFSET = 5;
 /** @type {number} */
 Blockly.FunctionEditor.BUTTON_TOP_OFFSET = -22;
 
+/** @type {Blockly.FunctionEditor[]} */
+Blockly.FunctionEditor.allFunctionEditors = [];
+
+/**
+ * Get a string from Blockly.Msg, unless overridden by msgOverrides
+ */
+Blockly.FunctionEditor.prototype.getMsg = function(label) {
+  return this.msgOverrides_[label] || Blockly.Msg[label];
+};
+
+Blockly.FunctionEditor.prototype.paramEditingDisabled = function () {
+  return Blockly.disableParamEditing || this.disableParamEditing;
+};
+
 /**
  * The type of block to instantiate in the function editing area
  * @type {string}
@@ -107,7 +136,7 @@ Blockly.FunctionEditor.prototype.definitionBlockType = 'procedures_defnoreturn';
  * The type of block to instantiate for parameter definition
  * @type {string}
  */
-Blockly.FunctionEditor.prototype.parameterBlockType = 'parameters_get';
+Blockly.FunctionEditor.prototype.defaultParameterBlockType = 'parameters_get';
 
 /**
  * @param {String} autoOpenFunction - name of function to auto-open
@@ -135,6 +164,13 @@ Blockly.FunctionEditor.prototype.autoOpenWithLevelConfiguration = function(confi
  */
 Blockly.FunctionEditor.prototype.openEditorForCallBlock_ = function(procedureBlock) {
   var functionName = procedureBlock.getTitleValue('NAME');
+  this.openEditorForFunction(procedureBlock, functionName);
+}
+
+/**
+ * @param {string} functionName name of function for which to open editor
+ */
+Blockly.FunctionEditor.prototype.openEditorForFunction = function(procedureBlock, functionName) {
   procedureBlock.blockSpace.blockSpaceEditor.hideChaff();
   this.hideIfOpen();
   this.openAndEditFunction(functionName);
@@ -156,8 +192,8 @@ Blockly.FunctionEditor.prototype.openAndEditFunction = function(functionName) {
   this.populateParamToolbox_();
   this.setupUIAfterBlockInEditor_();
 
-  goog.dom.getElement('functionNameText').value = functionName;
-  goog.dom.getElement('functionDescriptionText').value =
+  this.container_.querySelector('#functionNameText').value = functionName;
+  this.container_.querySelector('#functionDescriptionText').value =
       this.functionDefinitionBlock.description_ || '';
   this.deleteButton_.setVisible(targetFunctionDefinitionBlock.userCreated);
 
@@ -191,7 +227,11 @@ Blockly.FunctionEditor.prototype.populateParamToolbox_ = function() {
 Blockly.FunctionEditor.prototype.addParamsFromProcedure_ = function() {
   var procedureInfo = this.functionDefinitionBlock.getProcedureInfo();
   for (var i = 0; i < procedureInfo.parameterNames.length; i++) {
-    this.addParameter(procedureInfo.parameterNames[i]);
+    if (procedureInfo.parameterTypes) {
+      this.addParameter(procedureInfo.parameterNames[i], procedureInfo.parameterTypes[i]);
+    } else {
+      this.addParameter(procedureInfo.parameterNames[i]);
+    }
   }
 };
 
@@ -220,34 +260,44 @@ Blockly.FunctionEditor.prototype.openWithNewFunction = function() {
 };
 
 Blockly.FunctionEditor.prototype.bindToolboxHandlers_ = function() {
-  var paramAddTextElement = goog.dom.getElement('paramAddText');
-  var paramAddButton = goog.dom.getElement('paramAddButton');
-  if (!Blockly.disableParamEditing) {
+  var paramAddTextElement = this.container_.querySelector('#paramAddText');
+  var paramAddTypeSelect = this.container_.querySelector('#paramAddType');
+  var paramAddButton = this.container_.querySelector('#paramAddButton');
+  if (!this.paramEditingDisabled()) {
     Blockly.bindEvent_(paramAddButton, 'click', this,
-        goog.bind(this.addParamFromInputField_, this, paramAddTextElement));
+        goog.bind(this.addParamFromInputField_, this, paramAddTextElement, paramAddTypeSelect));
     Blockly.bindEvent_(paramAddTextElement, 'keydown', this, function(e) {
       if (e.keyCode === goog.events.KeyCodes.ENTER) {
-        this.addParamFromInputField_(paramAddTextElement);
+        this.addParamFromInputField_(paramAddTextElement, paramAddTypeSelect);
       }
     });
   }
 };
 
 Blockly.FunctionEditor.prototype.addParamFromInputField_ = function(
-    parameterTextElement) {
+    parameterTextElement, paramAddTypeSelect) {
   var newParamName = parameterTextElement.value;
   parameterTextElement.value = '';
-  this.addParameter(newParamName);
+  var newParamType = paramAddTypeSelect && paramAddTypeSelect.value;
+  this.addParameter(newParamName, newParamType);
   this.refreshParamsEverywhere();
 };
 
-Blockly.FunctionEditor.prototype.addParameter = function(newParameterName) {
-  this.orderedParamIDsToBlocks_.set(goog.events.getUniqueId('parameter'), this.newParameterBlock(newParameterName));
+Blockly.FunctionEditor.prototype.addParameter = function(newParameterName, newParameterType) {
+  this.orderedParamIDsToBlocks_.set(goog.events.getUniqueId('parameter'), this.newParameterBlock(newParameterName, newParameterType));
 };
 
-Blockly.FunctionEditor.prototype.newParameterBlock = function(newParameterName) {
-  var param = Blockly.createSvgElement('block', {type: this.parameterBlockType});
+Blockly.FunctionEditor.prototype.getParameterBlockType = function(type) {
+  return this.parameterBlockTypes[type] || this.defaultParameterBlockType;
+}
+
+Blockly.FunctionEditor.prototype.newParameterBlock = function(newParameterName, newParameterType) {
+  var parameterBlockType = this.getParameterBlockType(newParameterType);
+  var param = Blockly.createSvgElement('block', {type: parameterBlockType});
   var v = Blockly.createSvgElement('title', {name: 'VAR'}, param);
+  if (newParameterType) {
+    Blockly.createSvgElement('mutation', {output: newParameterType}, param);
+  }
   v.textContent = newParameterName;
   return param;
 };
@@ -331,7 +381,9 @@ Blockly.FunctionEditor.prototype.paramsAsParallelArrays_ = function() {
     paramNames.push(blockXML.firstElementChild.textContent);
     paramIDs.push(paramID);
     if (blockXML.childNodes.length > 1) {
-      paramTypes.push(blockXML.childNodes[1].textContent);
+      // Functional blocks and procedures store output mutations differently.
+      var node = blockXML.childNodes[1];
+      paramTypes.push(node.getAttribute('output') || node.textContent);
     }
   }, this);
   return {paramNames: paramNames, paramIDs: paramIDs, paramTypes: paramTypes};
@@ -400,10 +452,10 @@ Blockly.FunctionEditor.prototype.hideAndRestoreBlocks_ = function() {
   this.functionDefinitionBlock = null;
   this.moveToMainBlockSpace_(functionDefinitionBlock);
 
-  goog.dom.getElement('functionNameText').value = '';
-  goog.dom.getElement('functionDescriptionText').value = '';
-  if (goog.dom.getElement('paramAddText')) {
-    goog.dom.getElement('paramAddText').value = '';
+  this.container_.querySelector('#functionNameText').value = '';
+  this.container_.querySelector('#functionDescriptionText').value = '';
+  if (this.container_.querySelector('#paramAddText')) {
+    this.container_.querySelector('#paramAddText').value = '';
   }
 
   goog.style.setElementShown(this.container_, false);
@@ -535,7 +587,7 @@ Blockly.FunctionEditor.prototype.create_ = function() {
 
   // The function editor block space passes clicks through via
   // pointer-events:none, so register the unselect handler on lower elements
-  Blockly.bindEvent_(goog.dom.getElement('modalContainer'), 'mousedown', this,
+  Blockly.bindEvent_(this.container_, 'mousedown', this,
       function(e) {
     // Only handle clicks on modalContainer, not a descendant
     if (e.target === e.currentTarget) {
@@ -553,19 +605,19 @@ Blockly.FunctionEditor.prototype.create_ = function() {
     }
   });
 
-  Blockly.bindEvent_(goog.dom.getElement('modalEditorClose'), 'mousedown', this,
+  Blockly.bindEvent_(this.container_.querySelector('#modalEditorClose'), 'mousedown', this,
       this.onClose);
-  Blockly.bindEvent_(goog.dom.getElement('functionNameText'), 'input', this,
+  Blockly.bindEvent_(this.container_.querySelector('#functionNameText'), 'input', this,
       functionNameChange);
   // IE9 doesn't fire oninput when delete key is pressed, bind keydown also
-  Blockly.bindEvent_(goog.dom.getElement('functionNameText'), 'keydown', this,
+  Blockly.bindEvent_(this.container_.querySelector('#functionNameText'), 'keydown', this,
       functionNameChange);
   function functionNameChange(e) {
     var value = e.target.value;
     var disallowedCharacters = /\)|\(/g;
     if (disallowedCharacters.test(value)) {
       value = value.replace(disallowedCharacters, '');
-      goog.dom.getElement('functionNameText').value = value;
+      this.container_.querySelector('#functionNameText').value = value;
     }
     this.functionDefinitionBlock.setTitleValue(value, 'NAME');
   }
@@ -576,10 +628,10 @@ Blockly.FunctionEditor.prototype.create_ = function() {
     }
   });
 
-  Blockly.bindEvent_(goog.dom.getElement('functionDescriptionText'), 'input',
+  Blockly.bindEvent_(this.container_.querySelector('#functionDescriptionText'), 'input',
       this, functionDescriptionChange);
   // IE9 doesn't fire oninput when delete key is pressed, bind keydown also
-  Blockly.bindEvent_(goog.dom.getElement('functionDescriptionText'), 'keydown',
+  Blockly.bindEvent_(this.container_.querySelector('#functionDescriptionText'), 'keydown',
       this, functionDescriptionChange);
   function functionDescriptionChange(e) {
     this.functionDefinitionBlock.description_ = e.target.value;
@@ -782,7 +834,7 @@ Blockly.FunctionEditor.prototype.addCloseButton_ = function () {
     'y': padding,
     'class': 'blocklyText'
   }, this.closeButton_);
-  text.textContent = Blockly.Msg.CLOSE;
+  text.textContent = this.getMsg('CLOSE');
   this.modalBlockSpaceEditor.appendSVGChild(this.closeButton_);
   var bounds = text.getBoundingClientRect();
   r.setAttribute('width', bounds.width + 2 * padding);
@@ -797,18 +849,18 @@ Blockly.FunctionEditor.prototype.addCloseButton_ = function () {
  */
 Blockly.FunctionEditor.prototype.addDeleteButton_ = function () {
   this.deleteButton_ = new Blockly.SvgTextButton(
-      this.modalBlockSpaceEditor.getSVGElement(), Blockly.Msg.DELETE,
+      this.modalBlockSpaceEditor.getSVGElement(), this.getMsg('DELETE'),
       this.onDeletePressed.bind(this));
 };
 
 Blockly.FunctionEditor.prototype.onDeletePressed = function () {
   var functionName = this.functionDefinitionBlock.getProcedureInfo().name;
-  var deleteMessage = Blockly.Msg.CONFIRM_DELETE_FUNCTION_MESSAGE.replace('%1',
+  var deleteMessage = this.getMsg('CONFIRM_DELETE_FUNCTION_MESSAGE').replace('%1',
       functionName);
   Blockly.showSimpleDialog({
     bodyText: deleteMessage,
-    cancelText: Blockly.Msg.DELETE,
-    confirmText: Blockly.Msg.KEEP,
+    cancelText: this.getMsg('DELETE'),
+    confirmText: this.getMsg('KEEP'),
     onConfirm: null,
     onCancel: this.onDeleteConfirmed.bind(this, functionName),
     cancelButtonClass: 'red-delete-button'
@@ -860,7 +912,7 @@ Blockly.FunctionEditor.prototype.addEditorFrame_ = function () {
     'class': 'blocklyText',
     style: 'font-size: 12pt'
   }, this.modalBackground_);
-  this.frameText_.textContent = Blockly.Msg.FUNCTION_HEADER;
+  this.frameText_.textContent = this.getMsg('FUNCTION_HEADER');
 };
 
 Blockly.FunctionEditor.prototype.position_ = function() {
@@ -888,15 +940,24 @@ Blockly.FunctionEditor.prototype.getContractDomTopY_ = function() {
 };
 
 Blockly.FunctionEditor.prototype.createParameterEditor_ = function() {
-  if (Blockly.disableParamEditing) {
+  if (this.paramEditingDisabled()) {
     return;
   }
 
-  goog.dom.getElement('paramEditingArea').innerHTML =
-    '<div>' + Blockly.Msg.FUNCTION_PARAMETERS_LABEL + '</div>'
+  var paramTypeSelect = '';
+  if (this.paramTypes.length > 0) {
+    paramTypeSelect = this.paramTypes.map(function (type) {
+      return '<option>' + type + '</option>';
+    }).join('\n');
+    paramTypeSelect = '<select id="paramAddType" style="pointer-events: auto; margin: 0; width: 100px;">' + paramTypeSelect + '</select> ';
+  }
+
+  this.container_.querySelector('#paramEditingArea').innerHTML =
+    '<div>' + this.getMsg('FUNCTION_PARAMETERS_LABEL') + '</div>'
     + '<div>'
     + '<input id="paramAddText" type="text" style="width: 200px;"/> '
-    + '<button id="paramAddButton" class="btn">' + Blockly.Msg.ADD_PARAMETER + '</button>'
+    + paramTypeSelect
+    + '<button id="paramAddButton" class="btn no-mc">' + this.getMsg('ADD_PARAMETER') + '</button>'
     + '</div>';
 };
 
@@ -915,9 +976,9 @@ Blockly.FunctionEditor.prototype.createContractDom_ = function() {
     this.contractDiv_.setAttribute('dir', 'RTL');
   }
   this.contractDiv_.innerHTML =
-      '<div>' + Blockly.Msg.FUNCTION_NAME_LABEL + '</div>'
+      '<div>' + this.getMsg('FUNCTION_NAME_LABEL') + '</div>'
       + '<div><input id="functionNameText" type="text"></div>'
-      + '<div>' + Blockly.Msg.FUNCTION_DESCRIPTION_LABEL + '</div>'
+      + '<div>' + this.getMsg('FUNCTION_DESCRIPTION_LABEL') + '</div>'
       + '<div><textarea id="functionDescriptionText" rows="2"></textarea></div>'
       + '<div style="margin: 0;" id="paramEditingArea"></div>';
   this.contractDiv_.style.display = 'block';

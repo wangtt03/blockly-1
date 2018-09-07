@@ -43,6 +43,87 @@ function test_setBlockNotDisconnectable() {
   goog.dom.removeNode(containerDiv);
 }
 
+function assertConnectionAllowed(connection1, connection2) {
+  assertTrue(connection1.checkAllowedConnectionType_(connection2));
+  assertTrue(connection2.checkAllowedConnectionType_(connection1));
+}
+
+function assertConnectionNotAllowed(connection1, connection2) {
+  assertFalse(connection1.checkAllowedConnectionType_(connection2));
+  assertFalse(connection2.checkAllowedConnectionType_(connection1));
+}
+
+function test_checkAllowedConnectionType() {
+  var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
+
+  var blockSpace = Blockly.mainBlockSpace;
+
+  var strictOutputBlock = new Blockly.Block(blockSpace);
+  strictOutputBlock.initSvg();
+  strictOutputBlock.setStrictOutput(true, Blockly.BlockValueType.SPRITE);
+  var strictOutput = strictOutputBlock.outputConnection;
+
+  var nonStrictOutputBlock = new Blockly.Block(blockSpace);
+  nonStrictOutputBlock.initSvg();
+  nonStrictOutputBlock.setOutput(true, Blockly.BlockValueType.SPRITE);
+  var nonStrictOutput = nonStrictOutputBlock.outputConnection;
+
+  var otherTypeOutputBlock = new Blockly.Block(blockSpace);
+  otherTypeOutputBlock.initSvg();
+  otherTypeOutputBlock.setOutput(true, Blockly.BlockValueType.NUMBER);
+  var otherTypeOutput = otherTypeOutputBlock.outputConnection;
+
+  var noneTypeOutputBlock = new Blockly.Block(blockSpace);
+  noneTypeOutputBlock.initSvg();
+  noneTypeOutputBlock.setOutput(true);
+  var noneTypeOutput = noneTypeOutputBlock.outputConnection;
+
+  var strictInputBlock = new Blockly.Block(blockSpace);
+  strictInputBlock.initSvg();
+  strictInputBlock.appendValueInput('VALUE')
+      .setStrictCheck(Blockly.BlockValueType.SPRITE);
+  var strictInput = strictInputBlock.inputList[0].connection;
+
+  var nonStrictInputBlock = new Blockly.Block(blockSpace);
+  nonStrictInputBlock.initSvg();
+  nonStrictInputBlock.appendValueInput('VALUE')
+      .setCheck(Blockly.BlockValueType.SPRITE);
+  var nonStrictInput = nonStrictInputBlock.inputList[0].connection;
+
+  var otherTypeInputBlock = new Blockly.Block(blockSpace);
+  otherTypeInputBlock.initSvg();
+  otherTypeInputBlock.appendValueInput('VALUE')
+      .setCheck(Blockly.BlockValueType.NUMBER);
+  var otherTypeInput = otherTypeInputBlock.inputList[0].connection;
+
+  var noneTypeInputBlock = new Blockly.Block(blockSpace);
+  noneTypeInputBlock.initSvg();
+  noneTypeInputBlock.appendValueInput('VALUE');
+  var noneTypeInput = noneTypeInputBlock.inputList[0].connection;
+
+  assertConnectionAllowed(strictOutput, strictInput);
+  assertConnectionAllowed(strictOutput, nonStrictInput);
+  assertConnectionNotAllowed(strictOutput, otherTypeInput);
+  assertConnectionNotAllowed(strictOutput, noneTypeInput);
+
+  assertConnectionAllowed(nonStrictOutput, strictInput);
+  assertConnectionAllowed(nonStrictOutput, nonStrictInput);
+  assertConnectionNotAllowed(nonStrictOutput, otherTypeInput);
+  assertConnectionAllowed(nonStrictOutput, noneTypeInput);
+
+  assertConnectionNotAllowed(otherTypeOutput, strictInput);
+  assertConnectionNotAllowed(otherTypeOutput, nonStrictInput);
+  assertConnectionAllowed(otherTypeOutput, otherTypeInput);
+  assertConnectionAllowed(otherTypeOutput, noneTypeInput);
+
+  assertConnectionNotAllowed(noneTypeOutput, strictInput);
+  assertConnectionAllowed(noneTypeOutput, nonStrictInput);
+  assertConnectionAllowed(noneTypeOutput, otherTypeInput);
+  assertConnectionAllowed(noneTypeOutput, noneTypeInput);
+
+  goog.dom.removeNode(containerDiv);
+}
+
 function test_clickIntoEditableUnmovableBlock() {
   var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
 
@@ -121,10 +202,11 @@ function test_setBlockNextConnectionDisabled() {
   assert(block.nextConnectionDisabled_ === true);
   assertNull(block.nextConnection);
 
+  goog.dom.removeNode(containerDiv);
 }
 
 function test_visibleThroughParent() {
-  Blockly.Test.initializeBlockSpaceEditor();
+  var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
   var blockSpace = Blockly.mainBlockSpace;
 
   Blockly.Xml.domToBlockSpace(blockSpace, Blockly.Xml.textToDom(
@@ -150,10 +232,12 @@ function test_visibleThroughParent() {
 
   assert(parentBlock.isVisible() === false);
   assert(childBlock.isVisible() === false);
+
+  goog.dom.removeNode(containerDiv);
 }
 
 function test_isVisible() {
-  Blockly.Test.initializeBlockSpaceEditor();
+  var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
   var blockSpace = Blockly.mainBlockSpace;
 
   Blockly.Xml.domToBlockSpace(blockSpace, Blockly.Xml.textToDom(
@@ -190,6 +274,8 @@ function test_isVisible() {
   // finally, restore the editBlocks state to avoid polluting future
   // tests
   Blockly.editBlocks = original_editBlocks_state;
+
+  goog.dom.removeNode(containerDiv);
 }
 
 function test_blockSetIsUnused() {
@@ -230,4 +316,82 @@ function test_blockSetIsUnused() {
 
   goog.dom.removeNode(containerDiv);
   Blockly.showUnusedBlocks = orig;
+}
+
+function test_unknownLanguageBlocks() {
+  var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
+  var blockSpace = Blockly.mainBlockSpace;
+  var lastEvent = null;
+
+  window.addEventListener('unknownBlock', function (e) {
+    lastEvent = e;
+  });
+
+  Blockly.Xml.domToBlockSpace(blockSpace, Blockly.Xml.textToDom(
+    '<xml>' +
+      '<block type="not_a_real_block" movable="false">' +
+        '<statement name="DO">' +
+          '<block type="math_change" movable="false"/>' +
+        '</statement>' +
+        '<next>' +
+          '<block type="math_change" movable="false">' +
+            '<next>' +
+            '<block type="math_change" movable="false"/>' +
+            '</next>' +
+          '</block>' +
+        '</next>' +
+      '</block>' +
+    '</xml>'
+  ));
+
+  assertEquals('not_a_real_block', lastEvent.name);
+
+  var unknownBlock = blockSpace.getTopBlocks()[0];
+  var statementBlock = unknownBlock.getChildren()[0];
+  var firstNextBlock = unknownBlock.getChildren()[1];
+  var secondNextBlock = firstNextBlock.getChildren()[0];
+
+  assert(unknownBlock.isMovable() === true);
+  assert(statementBlock.isMovable() === true);
+  assert(firstNextBlock.isMovable() === true);
+  assert(secondNextBlock.isMovable() === false);
+
+  goog.dom.removeNode(containerDiv);
+}
+
+function test_typedParams() {
+  var containerDiv = Blockly.Test.initializeBlockSpaceEditor();
+  var blockSpace = Blockly.mainBlockSpace;
+
+  Blockly.Xml.domToBlockSpace(blockSpace, Blockly.Xml.textToDom(
+    '<xml>' +
+      '<block type="procedures_defnoreturn">' +
+        '<mutation>' +
+          '<arg name="x" type="Number"></arg>' +
+          '<arg name="y" type="Number"></arg>' +
+        '</mutation>' +
+        '<title name="NAME">do something</title>' +
+      '</block>' +
+      '<block type="procedures_callnoreturn" inline="false">' +
+        '<mutation name="do something">' +
+          '<arg name="x" type="Number"></arg>' +
+          '<arg name="y" type="Number"></arg>' +
+        '</mutation>' +
+      '</block>' +
+    '</xml>'
+  ));
+
+  var blocks = Blockly.mainBlockSpace.getTopBlocks();
+  var definition = blocks[0];
+  var call = blocks[1];
+
+  definition.updateParamsFromArrays(['abc', 'def'], [1, 2], ['String', 'Sprite']);
+
+  var procInfo = definition.getProcedureInfo();
+
+  assert(goog.array.equals(['abc', 'def'], procInfo.parameterNames));
+  assert(goog.array.equals(['String', 'Sprite'], procInfo.parameterTypes));
+  assert(goog.array.equals(['String', 'Sprite'], call.currentParameterTypes_));
+
+  goog.dom.removeNode(containerDiv);
 }
