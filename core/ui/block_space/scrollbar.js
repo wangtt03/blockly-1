@@ -49,7 +49,7 @@ Blockly.ScrollbarPair = function(blockSpace, addHorizontal, addVertical) {
     this.corner_ = Blockly.createSvgElement('rect',
         {'height': Blockly.Scrollbar.scrollbarThickness,
         'width': Blockly.Scrollbar.scrollbarThickness,
-        'style': 'fill: #fff'}, null);
+        'style': 'fill: #ddd; fill-opacity: 0'}, null);
     Blockly.Scrollbar.insertAfter_(this.corner_, blockSpace.getBubbleCanvas());
   }
 };
@@ -247,6 +247,7 @@ Blockly.ScrollbarSvg.prototype.resize = function(opt_metrics) {
     var outerLength = hostMetrics.viewWidth;
     if (this.pair_) {
       // Shorten the scrollbar to make room for the corner square.
+      this.setVisible(outerLength < blockSpaceSize.width);
       outerLength -= Blockly.Scrollbar.scrollbarThickness;
     } else {
       // Only show the scrollbar if needed.
@@ -277,6 +278,7 @@ Blockly.ScrollbarSvg.prototype.resize = function(opt_metrics) {
     var outerLength = hostMetrics.viewHeight;
     if (this.pair_) {
       // Shorten the scrollbar to make room for the corner square.
+      this.setVisible(outerLength < blockSpaceSize.height);
       outerLength -= Blockly.Scrollbar.scrollbarThickness;
     } else {
       // Only show the scrollbar if needed.
@@ -348,9 +350,9 @@ Blockly.ScrollbarSvg.prototype.setVisible = function(visible) {
   }
   // Ideally this would also apply to scrollbar pairs, but that's a bigger
   // headache (due to interactions with the corner square).
-  if (this.pair_) {
-    throw 'Unable to toggle visibility of paired scrollbars.';
-  }
+  // if (this.pair_) {
+  //   throw 'Unable to toggle visibility of paired scrollbars.';
+  // }
   if (visible) {
     this.svgGroup_.setAttribute('display', 'block');
   } else {

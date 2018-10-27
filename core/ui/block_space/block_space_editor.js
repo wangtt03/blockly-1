@@ -979,7 +979,7 @@ Blockly.BlockSpaceEditor.prototype.setBlockSpaceMetrics_ = function(xyRatio) {
   this.blockSpace.getBubbleCanvas().setAttribute('transform', translation);
   if (this.blockSpace.getTrashCan()) {
     this.blockSpace.getTrashCan().setAttribute("style", "display: block; pointer-events: none");
-    this.blockSpace.getTrashCan().setAttribute('transform', 'translate(' + (metrics.absoluteLeft + metrics.viewWidth - 100) + ',' + 0 + ')');
+    this.blockSpace.getTrashCan().setAttribute('transform', 'translate(' + (metrics.absoluteLeft + metrics.viewWidth - Blockly.Trashcan.WIDTH_ - 10) + ',' + (metrics.absoluteTop + metrics.viewHeight - Blockly.Trashcan.HEIGHT_ - 10) + ')');
   }
 
   var offset = Blockly.convertCoordinates(x, y, this.svg_, false);

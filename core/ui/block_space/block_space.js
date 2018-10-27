@@ -851,8 +851,9 @@ Blockly.BlockSpace.prototype.hideDelete = function() {
 /**
 * Draws the trash zone over the toolbox/flyout, as the user drags an
 * item towards it.
-* @param {!Event} e Mouse move event.
+* @param x
 * @param {integer} startDragX The x coordinate of the drag start.
+* @param undeletable
 * @return {boolean} True if event is in a delete area.
 */
 Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX, undeletable) {

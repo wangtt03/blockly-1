@@ -132,7 +132,8 @@ Blockly.Toolbox.prototype.init = function(blockSpace, blockSpaceEditor) {
   this.flyout_.init(blockSpace, true);
   this.populate_();
   tree.render(this.HtmlDiv);
-
+  this.addColour_();
+  
   // If the document resizes, reposition the toolbox.
   goog.events.listen(window, goog.events.EventType.RESIZE,
                      goog.partial(this.position_, blockSpaceEditor), false, this);
@@ -173,22 +174,6 @@ Blockly.Toolbox.prototype.position_ = function(blockSpaceEditor) {
   var trashcanWidth = this.trashcanHolder.getAttribute("width");
   var trashcanX = Math.round(toolboxWidth / 2 - trashcanWidth / 2);
   this.trashcanHolder.style["left"] = trashcanX + 'px';
-};
-
-Blockly.Toolbox.prototype.updateToolbox = function(tree) {
-  
-  var tree = new Blockly.Toolbox.TreeControl(this, 'root', Blockly.Toolbox.CONFIG_);
-  this.tree_ = tree;
-  tree.setShowRootNode(false);
-  tree.setShowLines(false);
-  tree.setShowExpandIcons(false);
-  tree.setSelectedItem(null);
-  
-  Blockly.languageTree = Blockly.Xml.textToDom(tree);
-  // this.flyout_.init(blockSpace, true);
-  this.populate_();
-  tree.render(this.HtmlDiv);
-  this.addColour_();
 };
 
 /**
@@ -275,16 +260,14 @@ Blockly.Toolbox.prototype.populate_ = function() {
           childOut.blocks[0] = custom;
         }
 
-        
         syncTrees(childIn, childOut);
-        
       } else if (name === 'BLOCK') {
         treeOut.blocks.push(childIn);
       }
     }
   }
   syncTrees(Blockly.languageTree, this.tree_);
-  this.hasColours_ = hasColours;
+
   if (rootOut.blocks.length) {
     throw 'Toolbox cannot have both blocks and categories in the root level.';
   }
