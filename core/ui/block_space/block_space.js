@@ -781,11 +781,11 @@ Blockly.BlockSpace.prototype.recordDeleteAreas = function() {
     this.deleteAreaTrash_ = null;
   }
 
-  if (!Blockly.isPortrait && this.flyout_) {
+  if (this.flyout_) {
     goog.array.extend(this.deleteAreas_, this.flyout_.getRect());
   }
 
-  if (!Blockly.isPortrait && this.blockSpaceEditor) {
+  if (this.blockSpaceEditor) {
     goog.array.extend(this.deleteAreas_,
         this.blockSpaceEditor.getDeleteAreas());
   }
@@ -857,10 +857,6 @@ Blockly.BlockSpace.prototype.hideDelete = function() {
 * @return {boolean} True if event is in a delete area.
 */
 Blockly.BlockSpace.prototype.drawTrashZone = function(x, startDragX, undeletable) {
-  if (Blockly.isPortrait) {
-    return;
-  }
-
   var background;
   var blockGroup;
   var trashcan;

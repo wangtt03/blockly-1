@@ -361,11 +361,7 @@ Blockly.BlockSpaceEditor.prototype.addFlyout_ = function() {
   flyout.init(this.blockSpace, true);
   flyout.autoClose = false;
   // Insert the flyout behind the blockSpace so that blocks appear on top.
-  if (Blockly.isPortrait) {
-    goog.dom.insertSiblingAfter(flyoutSvg, this.blockSpace.svgGroup_);
-  } else {
-    goog.dom.insertSiblingBefore(flyoutSvg, this.blockSpace.svgGroup_);
-  }
+  goog.dom.insertSiblingBefore(flyoutSvg, this.blockSpace.svgGroup_);
 };
 
 /**
@@ -894,7 +890,7 @@ Blockly.BlockSpaceEditor.prototype.getBlockSpaceMetrics_ = function() {
   var svgSize = this.svgSize(); // includes toolbox
   var toolboxWidth = 0;
   if (this.toolbox || this.flyout_) {
-    toolboxWidth = this.toolbox ? this.toolbox.width : (Blockly.isPortrait? 0 : this.flyout_.width_);
+    toolboxWidth = this.toolbox ? this.toolbox.width : this.flyout_.width_;
   }
   svgSize.width -= toolboxWidth;
   try {

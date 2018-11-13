@@ -153,7 +153,7 @@ Blockly.Flyout.prototype.createDom = function(insideToolbox) {
   this.svgGroup_.appendChild(this.blockSpace_.createDom());
 
   // Add a trashcan.
-  if (!Blockly.isPortrait && !insideToolbox) {
+  if (!insideToolbox) {
     this.trashcan = new Blockly.Trashcan(this);
     this.svgTrashcan_ = this.trashcan.createDom();
     this.svgTrashcan_.setAttribute("style",
@@ -329,9 +329,7 @@ Blockly.Flyout.prototype.position_ = function() {
     x = this.static_ ? 0 : -this.width_;
     x += metrics.viewWidth;
   } else if (this.static_) {
-    if (!Blockly.isPortrait) {
       x -= this.width_;
-    }
   }
   this.svgGroup_.setAttribute('transform', 'translate(' + x + ',' + y + ')');
 
@@ -800,9 +798,6 @@ Blockly.Flyout.prototype.createBlockFunc_ = function(originBlock) {
           }, 0);
         }
       );
-    }
-    if (Blockly.isPortrait) {
-      flyout.svgGroup_.style.display = 'none';
     }
     // Start a dragging operation on the new block.
     block.onMouseDown_(e);

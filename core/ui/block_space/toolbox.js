@@ -84,12 +84,10 @@ Blockly.Toolbox.prototype.createDom = function (svg) {
     height: 90,
     style: 'display: none; position: absolute'
   }, this.HtmlDiv);
-  if (!Blockly.isPortrait){
-    this.trashcan = new Blockly.Trashcan(this);
-    this.svgTrashcan = this.trashcan.createDom();
-    this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
-    this.trashcanHolder.appendChild(this.svgTrashcan);
-  }
+  this.trashcan = new Blockly.Trashcan(this);
+  this.svgTrashcan = this.trashcan.createDom();
+  this.svgTrashcan.setAttribute('transform', 'translate(0, 10)');
+  this.trashcanHolder.appendChild(this.svgTrashcan);
 
   /**
    * @type {!Blockly.Flyout}
